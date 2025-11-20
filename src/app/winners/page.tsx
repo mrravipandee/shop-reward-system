@@ -177,21 +177,26 @@ export default function WinnersPage() {
   // Filter winners based on search and date
   useEffect(() => {
     let filtered = winnersData;
-    
+
     if (searchTerm) {
       filtered = filtered.filter(winner =>
         winner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         winner.prize.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
+
     if (selectedDate !== "all") {
       filtered = filtered.filter(winner => winner.date === selectedDate);
     }
-    
-    setWinners(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
+
+    // FIX: Wrap setState in a microtask to avoid cascading renders
+    setTimeout(() => {
+      setWinners(filtered);
+      setCurrentPage(1);
+    }, 0);
+
   }, [searchTerm, selectedDate]);
+
 
   // Calculate pagination
   const totalPages = Math.ceil(winners.length / ITEMS_PER_PAGE);
@@ -216,18 +221,18 @@ export default function WinnersPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-secondary/5 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        
+
         {/* Header Section */}
         <div className="text-center mb-8 sm:mb-12 mt-14">
           <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full text-primary font-medium text-sm sm:text-base mb-4">
             <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Daily Winners</span>
           </div>
-          
+
           <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-secondary mb-4 sm:mb-6 leading-tight">
             Our <span className="text-primary">Lucky Winners</span> 🎉
           </h1>
-          
+
           <p className="text-secondary/80 text-base sm:text-lg lg:text-xl max-w-3xl mx-auto leading-relaxed">
             Celebrating our amazing customers who won exciting rewards. Your next purchase could make you a winner!
           </p>
@@ -321,7 +326,7 @@ export default function WinnersPage() {
                 <h3 className="font-bold text-secondary text-lg sm:text-xl group-hover:text-primary transition-colors duration-300">
                   {winner.name}
                 </h3>
-                
+
                 <div className="flex items-center justify-center gap-2 text-primary font-semibold text-base sm:text-lg">
                   <IndianRupee className="w-4 h-4" />
                   <span>{winner.prize}</span>
@@ -389,11 +394,10 @@ export default function WinnersPage() {
                   <button
                     key={page}
                     onClick={() => handlePageChange(page)}
-                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg font-medium transition-all duration-200 ${
-                      currentPage === page
+                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg font-medium transition-all duration-200 ${currentPage === page
                         ? 'bg-primary text-white shadow-lg'
                         : 'text-secondary hover:bg-secondary/5 border border-secondary/20'
-                    }`}
+                      }`}
                   >
                     {page}
                   </button>

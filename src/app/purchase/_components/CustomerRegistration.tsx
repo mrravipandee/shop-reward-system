@@ -1,10 +1,11 @@
 "use client";
 import { useState, useRef } from "react";
 import { User, Camera, Phone, Calendar, Upload } from "lucide-react";
+import Image from "next/image";
 
 interface CustomerRegistrationProps {
   customerPhone: string;
-  onSubmit: (customerData: any) => void;
+  onSubmit: (customerData: { phone: string; name: string; dob: string; photo: string | null; registeredAt: string }) => void;
   onBack: () => void;
 }
 
@@ -88,7 +89,7 @@ export default function CustomerRegistration({ customerPhone, onSubmit, onBack }
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {photo ? (
-                    <img 
+                    <Image
                       src={photo} 
                       alt="Profile" 
                       className="w-full h-full rounded-2xl object-cover"

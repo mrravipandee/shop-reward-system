@@ -1,6 +1,6 @@
 "use client";
 
-import CoinDashboard from "@/components/CoinDashboard";
+import CoinDashboard from "@/app/coins/_components/CoinDashboard";
 import EnterNumber from "@/components/EnterNumber";
 import VerifyOtp from "@/components/VerifyOtp";
 

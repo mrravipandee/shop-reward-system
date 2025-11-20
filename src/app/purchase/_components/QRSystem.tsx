@@ -1,75 +1,67 @@
 "use client";
+
 import { useState } from "react";
-import QRScanner from "./QRScanner";
 import PurchaseForm from "./PurchaseForm";
 import CustomerRegistration from "./CustomerRegistration";
 import PurchaseSuccess from "./PurchaseSuccess";
 
-type AppState = "scanning" | "purchase" | "registration" | "success";
+// App States
+type AppState = "purchase" | "registration" | "success";
+
+// Purchase data structure
+interface PurchaseData {
+  customerPhone: string;
+  amount: number;
+  paymentMode: "cash" | "online";
+  shopCode: string;
+  coinsEarned: number;
+  timestamp: string;
+  reward?: string;
+}
 
 export default function QRSystem() {
-  const [currentState, setCurrentState] = useState<AppState>("scanning");
+  // 🔥 Correct State Management
+  const [currentState, setCurrentState] = useState<AppState>("purchase");
   const [customerPhone, setCustomerPhone] = useState("");
   const [isNewCustomer, setIsNewCustomer] = useState(false);
-  const [purchaseData, setPurchaseData] = useState<any>(null);
+  const [purchaseData, setPurchaseData] = useState<PurchaseData | null>(null);
 
-  const handleScanComplete = (customerData: any) => {
-    setCustomerPhone(customerData.phone);
-    if (customerData.exists) {
-      setCurrentState("purchase");
-      setIsNewCustomer(false);
-    } else {
-      setCurrentState("registration");
-      setIsNewCustomer(true);
-    }
-  };
-
-  const handlePurchaseSubmit = (purchaseData: any) => {
-    console.log("Purchase submitted:", purchaseData);
-    // Simulate API call to backend
-    setPurchaseData(purchaseData);
-    setCurrentState("success");
-    
-    // Here you would actually send to your backend:
-    // fetch('/api/purchases', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(purchaseData)
-    // })
-  };
-
-  const handleRegistrationSubmit = (customerData: any) => {
+  // 🔥 CUSTOMER REGISTRATION
+  const handleRegistrationSubmit = (customerData: Record<string, unknown>) => {
     console.log("Customer registered:", customerData);
-    // Simulate API call to backend
-    setCurrentState("purchase");
+
+    // After registration, show Purchase Form
     setIsNewCustomer(false);
-    
-    // Here you would actually send to your backend:
-    // fetch('/api/customers', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(customerData)
-    // })
+    setCurrentState("purchase");
   };
 
+  // 🔥 PURCHASE SUBMIT
+  const handlePurchaseSubmit = (data: PurchaseData) => {
+    console.log("Purchase submitted:", data);
+
+    // Save purchase, move to success screen
+    setPurchaseData(data);
+    setCurrentState("success");
+  };
+
+  // 🔙 BACK TO PURCHASE FORM
   const handleBackToScanner = () => {
-    setCurrentState("scanning");
+    setCurrentState("purchase");
     setCustomerPhone("");
     setPurchaseData(null);
   };
 
+  // ➕ NEW PURCHASE
   const handleNewPurchase = () => {
-    setCurrentState("scanning");
+    setCurrentState("purchase");
     setCustomerPhone("");
     setPurchaseData(null);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
-      {currentState === "scanning" && (
-        <QRScanner onScanComplete={handleScanComplete} />
-      )}
+    <div className="min-h-screen">
       
+      {/* Purchase Form */}
       {currentState === "purchase" && (
         <PurchaseForm
           customerPhone={customerPhone}
@@ -78,7 +70,8 @@ export default function QRSystem() {
           onBack={handleBackToScanner}
         />
       )}
-      
+
+      {/* New Customer Registration */}
       {currentState === "registration" && (
         <CustomerRegistration
           customerPhone={customerPhone}
@@ -86,7 +79,8 @@ export default function QRSystem() {
           onBack={handleBackToScanner}
         />
       )}
-      
+
+      {/* Purchase Success Screen */}
       {currentState === "success" && purchaseData && (
         <PurchaseSuccess
           purchaseData={purchaseData}
