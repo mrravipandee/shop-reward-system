@@ -38,7 +38,8 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({
+    // SUCCESS → CREATE COOKIE
+    const res = NextResponse.json({
       message: "Login Successful",
       user: {
         name: user.name,
@@ -46,7 +47,18 @@ export async function POST(req: Request) {
         coins: user.coins,
       },
     });
+
+    res.cookies.set("user_token", user._id.toString(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+    });
+
+    return res;
+
   } catch (err) {
+    console.error("LOGIN ERROR:", err);
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }
