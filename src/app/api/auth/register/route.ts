@@ -70,10 +70,10 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ message: "User registered successfully" });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("REGISTER API ERROR:", err);
     return NextResponse.json(
-      { error: "Internal Server Error", details: err.message },
+      { error: "Internal Server Error", details: err instanceof Error ? err.message : "Unknown error" },
       { status: 500 }
     );
   }

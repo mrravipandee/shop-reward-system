@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Gift, Star, Play, Users, Phone, Truck, Award } from "lucide-react";
+import { Gift, Star, Users, Phone, Truck, Award } from "lucide-react";
 
 export default function Hero() {
   const users = [
@@ -67,7 +67,7 @@ export default function Hero() {
                 {/* User Community Section */}
                 <div className="mt-8 lg:mt-12 lg:flex lg:items-center">
                   <div className="flex justify-center flex-shrink-0 -space-x-4 overflow-hidden lg:justify-start">
-                    {users.map((user, index) => (
+                    {users.map((user) => (
                       <Image
                         key={user.alt}
                         src={user.src}

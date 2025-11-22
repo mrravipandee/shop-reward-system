@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
 
+interface CloudinaryUploadResult {
+  secure_url: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -22,7 +26,7 @@ export async function POST(req: NextRequest) {
         .end(buffer);
     });
 
-    return NextResponse.json({ url: (result as any).secure_url });
+    return NextResponse.json({ url: (result as CloudinaryUploadResult).secure_url });
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });

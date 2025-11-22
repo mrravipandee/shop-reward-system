@@ -1,15 +1,12 @@
 "use client";
-import { useState, type ComponentType, type SVGProps } from "react";
+import { useState } from "react";
 import { Coins, Zap, Gift, Award, IndianRupee, Star, History, TrendingUp, Settings, X } from 'lucide-react';
 import UserProfileHeader from "./UserProfileHeader";
 
 export default function CoinDashboard() {
   const [coins, setCoins] = useState(1350);
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [menuOpen, setMenuOpen] = useState(false);
+  // const [menuOpen, setMenuOpen] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState<string | null>(null);
-  const productsPerPage = 6;
 
   const COIN_TO_RUPEE = 0.3;
   const coinValue = (coins * COIN_TO_RUPEE).toFixed(2);
@@ -145,15 +142,6 @@ export default function CoinDashboard() {
     },
   ];
 
-  const filteredProducts = selectedCategory === "all"
-    ? redeemProducts
-    : redeemProducts.filter(product => product.category === selectedCategory);
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-  const startIndex = (currentPage - 1) * productsPerPage;
-  const currentProducts = filteredProducts.slice(startIndex, startIndex + productsPerPage);
-
   const handleRedeem = (product: typeof redeemProducts[0]) => {
     if (coins >= product.requiredCoins) {
       setCoins(coins - product.requiredCoins);
@@ -161,16 +149,6 @@ export default function CoinDashboard() {
     }
   };
 
-  const getCategoryCount = (categoryId: string) => {
-    return redeemProducts.filter(product =>
-      categoryId === "all" ? true : product.category === categoryId
-    ).length;
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   const handleMenuClick = (menuId: string) => {
     setSelectedMenu(menuId);
@@ -419,103 +397,6 @@ export default function CoinDashboard() {
           </div>
         );
     }
-  };
-
-  type NavItemProps = {
-    icon: ComponentType<SVGProps<SVGSVGElement>>;
-    label: string;
-    active?: boolean;
-    onClick?: () => void;
-  };
-
-  const NavItem = ({ icon: Icon, label, active = false, onClick }: NavItemProps) => (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${active
-        ? "bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg"
-        : "text-gray-700 hover:bg-gray-100"
-        }`}
-    >
-      <Icon className="w-5 h-5" />
-      <span className="text-left">{label}</span>
-    </button>
-  );
-
-  // Pagination Component
-  const Pagination = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button
-          key={i}
-          onClick={() => handlePageChange(i)}
-          className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 ${currentPage === i
-            ? "bg-primary text-white shadow-lg"
-            : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
-            }`}
-        >
-          {i}
-        </button>
-      );
-    }
-
-    return (
-      <div className="flex flex-wrap items-center justify-center gap-2 mt-8">
-        {/* Previous Button */}
-        <button
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="px-4 py-2 rounded-lg font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-        >
-          Previous
-        </button>
-
-        {/* Page Numbers */}
-        {startPage > 1 && (
-          <>
-            <button
-              onClick={() => handlePageChange(1)}
-              className="px-3 py-2 rounded-lg font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
-            >
-              1
-            </button>
-            {startPage > 2 && <span className="px-2 text-gray-500">...</span>}
-          </>
-        )}
-
-        {pages}
-
-        {/* Next Button */}
-        {endPage < totalPages && (
-          <>
-            {endPage < totalPages - 1 && <span className="px-2 text-gray-500">...</span>}
-            <button
-              onClick={() => handlePageChange(totalPages)}
-              className="px-3 py-2 rounded-lg font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
-            >
-              {totalPages}
-            </button>
-          </>
-        )}
-
-        <button
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="px-4 py-2 rounded-lg font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-        >
-          Next
-        </button>
-      </div>
-    );
   };
 
   return (

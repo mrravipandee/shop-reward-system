@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { 
-  Trophy, Crown, Gift, Search, Filter, ChevronLeft, ChevronRight, 
-  Medal, TrendingUp, Star, Sparkles, Calendar
+  Trophy, Gift, Search, Filter, ChevronLeft, ChevronRight, 
+  TrendingUp, Star, Sparkles, Calendar
 } from "lucide-react";
 
 // --- Types & Mock Data ---
@@ -110,7 +110,13 @@ const PodiumCard = ({ winner, rank, height }: { winner: Winner, rank: number, he
   );
 };
 
-const StatCard = ({ icon: Icon, label, value }: any) => (
+interface StatCardProps {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+}
+
+const StatCard = ({ icon: Icon, label, value }: StatCardProps) => (
   <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
     <div className="p-3 rounded-lg bg-purple-50 text-purple-600">
       <Icon className="w-5 h-5" />
