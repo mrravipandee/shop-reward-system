@@ -5,9 +5,13 @@ import { Phone, Star } from "lucide-react";
 interface User {
   name: string;
   phone: string;
+  dob?: string;
   photo?: string;
   coins: number;
-  createdAt: string;
+  totalSpent?: number;
+  weeklySpent?: number;
+  monthlySpent?: number;
+  createdAt: string; 
 }
 
 interface UserProfileHeaderProps {

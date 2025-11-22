@@ -9,6 +9,7 @@ export interface User {
   totalSpent?: number;
   weeklySpent?: number;
   monthlySpent?: number;
+  createdAt?: string;
 }
 
 interface UserStore {
