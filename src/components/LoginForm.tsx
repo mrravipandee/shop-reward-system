@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Phone, 
-  Calendar, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  ArrowRight, 
-  LogIn 
+import {
+  Phone,
+  Calendar,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  LogIn
 } from "lucide-react";
 
 // 1. Define strict types for your form state
@@ -25,29 +25,35 @@ export default function LoginForm() {
     dob: "",
     password: "",
   });
-  
+
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  // Function to format the 10-digit number into 5-5 chunks for display
+  const formatPhoneNumber = (number: string): string => {
+    if (number.length <= 5) return number;
+    return `${number.slice(0, 5)} ${number.slice(5, 10)}`;
+  };
+
   // 2. Proper Type for Input Change Events
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
+
     // Specific logic for phone to allow only numbers and restrict length
     if (name === "phone") {
-       const numericValue = value.replace(/\D/g, '');
-       if (numericValue.length <= 10) {
-         setForm((prev) => ({ ...prev, [name]: numericValue }));
-       }
+      const numericValue = value.replace(/\D/g, '');
+      if (numericValue.length <= 10) {
+        setForm((prev) => ({ ...prev, [name]: numericValue }));
+      }
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
     }
-    
+
     setError(""); // Clear error on typing
   };
 
-  // 3. Proper Type for Form Submission
+  // 3. Updated Form Submission Logic to call the backend endpoint
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); // Prevent page reload
     setError("");
@@ -55,7 +61,7 @@ export default function LoginForm() {
 
     const { phone, dob, password } = form;
 
-    // Validation Logic
+    // Client-side Validation Logic
     if (!phone || !dob || !password) {
       setError("Please fill in all fields");
       setIsLoading(false);
@@ -67,20 +73,44 @@ export default function LoginForm() {
       setIsLoading(false);
       return;
     }
+    // End Validation
 
-    // Simulate API Call
-    setTimeout(() => {
-      alert(`Login Success!\nPhone: +91 ${phone}\nDOB: ${dob}`);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // Send the form data as a JSON string
+        body: JSON.stringify({ phone, dob, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Show success message
+        setError("");
+
+        // Save token/session returned from backend
+        if (data.token) {
+          localStorage.setItem("authToken", data.token);
+        }
+
+        // Redirect to dashboard or homepage
+        window.location.href = "/coins";
+
+      } else {
+        setError(data.error || "Invalid credentials");
+      }
+
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError("Network error or server connection failed.");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
-  // Function to format the 10-digit number into 5-5 chunks for display
-  const formatPhoneNumber = (number: string): string => {
-      if (number.length <= 5) return number;
-      if (number.length > 5) return `${number.slice(0, 5)} ${number.slice(5, 10)}`;
-      return number;
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -88,7 +118,7 @@ export default function LoginForm() {
       <div className="sm:mx-auto sm:w-full sm:max-w-xl mt-12">
         {/* Header Section */}
         <div className="mx-auto h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-          <LogIn className="h-6 w-6 text-primary" />
+          <LogIn className="h-6 w-6 text-indigo-600" />
         </div>
         <h2 className="text-center text-3xl font-extrabold text-gray-900">
           Welcome Back
@@ -101,22 +131,22 @@ export default function LoginForm() {
       {/* Main Form Container */}
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
         <div className="bg-white py-8 px-4 shadow-lg sm:rounded-xl sm:px-10 border border-gray-100">
-          
+
           <form className="space-y-6" onSubmit={handleSubmit}>
-            
+
             {/* Phone Input with +91 Prefix */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                 Mobile Number
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
-                
+
                 {/* Visual +91 Prefix */}
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center border-r border-gray-300 pr-2 pointer-events-none">
                   <Phone className="h-5 w-5 text-gray-400 mr-2" />
                   <span className="text-gray-700 font-medium">+91</span>
                 </div>
-                
+
                 <input
                   id="phone"
                   name="phone"
@@ -148,7 +178,8 @@ export default function LoginForm() {
                   max={new Date().toISOString().split("T")[0]} // Prevent future dates
                   value={form.dob}
                   onChange={handleChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary sm:text-sm text-gray-900 placeholder-gray-400"
+                  // Using Indigo for focus colors
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 placeholder-gray-400"
                 />
               </div>
             </div>
@@ -169,7 +200,8 @@ export default function LoginForm() {
                   placeholder="••••••••"
                   value={form.password}
                   onChange={handleChange}
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary sm:text-sm"
+                  // Using Indigo for focus colors
+                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
                 <button
                   type="button"
@@ -184,19 +216,21 @@ export default function LoginForm() {
                 </button>
               </div>
               <div className="flex justify-end mt-1">
-                <a href="#" className="text-xs font-medium text-primary hover:text-indigo-500">
-                    Forgot password?
+                <a href="/forgot-password" className="text-xs font-medium text-indigo-600 hover:text-indigo-500">
+                  Forgot password?
                 </a>
               </div>
             </div>
 
-            {/* Error Message */}
+            {/* Error/Success Message */}
             {error && (
-              <div className="rounded-md bg-red-50 p-4">
+              <div className={`rounded-lg p-4 ${error.includes('successful') || error.includes('Redirecting') ? 'bg-green-50' : 'bg-red-50'}`}>
                 <div className="flex">
                   <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">Error</h3>
-                    <div className="text-sm text-red-700 mt-1">{error}</div>
+                    <h3 className={`text-sm font-medium ${error.includes('successful') || error.includes('Redirecting') ? 'text-green-800' : 'text-red-800'}`}>
+                      {error.includes('successful') || error.includes('Redirecting') ? 'Success' : 'Error'}
+                    </h3>
+                    <div className={`text-sm ${error.includes('successful') || error.includes('Redirecting') ? 'text-green-700' : 'text-red-700'} mt-1`}>{error}</div>
                   </div>
                 </div>
               </div>
@@ -206,10 +240,18 @@ export default function LoginForm() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+              // Using Indigo for button colors
+              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
             >
               {isLoading ? (
-                "Processing..."
+                <span className="flex items-center">
+                  Signing In...
+                  {/* Basic loading spinner */}
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </span>
               ) : (
                 <>
                   Sign In <ArrowRight className="ml-2 h-4 w-4" />
@@ -218,7 +260,7 @@ export default function LoginForm() {
             </button>
           </form>
 
-          {/* Footer */}
+          {/* Footer for navigation */}
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -233,7 +275,7 @@ export default function LoginForm() {
             <div className="mt-6 grid grid-cols-1 gap-3">
               <a
                 href="/register"
-                className="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Create an account
               </a>

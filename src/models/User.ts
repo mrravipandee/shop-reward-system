@@ -3,8 +3,9 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IUser extends Document {
   phone: string;
   name?: string;
-  photo?: string;
   dob?: string;
+  password: string;
+  photo?: string;
   coins: number;
   totalSpent: number;
   weeklySpent: number;
@@ -14,50 +15,26 @@ export interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>(
   {
-    phone: {
-      type: String,
-      required: true,
-      unique: true,
-    },
+    phone: { type: String, required: true, unique: true },
 
-    name: {
-      type: String,
-      default: "",
-    },
+    name: { type: String, default: "" },
 
-    photo: {
-      type: String,
-      default: "",
-    },
+    dob: { type: String, default: "" },
 
-    dob: {
-      type: String,
-      default: "",
-    },
+    password: { type: String, required: true },  // added password
 
-    coins: {
-      type: Number,
-      default: 0,
-    },
+    photo: { type: String, default: "" },
 
-    totalSpent: {
-      type: Number,
-      default: 0,
-    },
+    coins: { type: Number, default: 0 },
 
-    weeklySpent: {
-      type: Number,
-      default: 0,
-    },
+    totalSpent: { type: Number, default: 0 },
 
-    monthlySpent: {
-      type: Number,
-      default: 0,
-    },
+    weeklySpent: { type: Number, default: 0 },
+
+    monthlySpent: { type: Number, default: 0 },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-export default mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+export default mongoose.models.User ||
+  mongoose.model<IUser>("User", UserSchema);
