@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Coins, Zap, Gift, Award, IndianRupee, Star, History, TrendingUp, Settings, X, ChevronRight } from 'lucide-react';
 import UserProfileHeader from "./UserProfileHeader";
-import { useUserStore, User } from "@/store/userStore"; // Import User type for better type safety
+import { useUserStore } from "@/store/userStore";
 
 // 1. Define Product Type for better type safety
 interface RedeemProduct {
@@ -211,7 +211,7 @@ export default function CoinDashboard() {
   
   // Assuming useUserStore exposes an update function that takes a partial User object (like { coins: newAmount })
   const updateStoreCoins = (newCoins: number) => {
-    setUser({ ...user, coins: newCoins } as User); // Cast to User to satisfy the setUser type
+    setUser({ ...user, coins: newCoins });
   };
 
   const handleRedeem = (product: RedeemProduct) => {
