@@ -1,26 +1,54 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Coins, Zap, Gift, Award, IndianRupee, Star, History, TrendingUp, Settings, X } from 'lucide-react';
 import UserProfileHeader from "./UserProfileHeader";
+import { useUserStore } from "@/store/userStore";
 
 export default function CoinDashboard() {
-  const [coins, setCoins] = useState(1350);
   // const [menuOpen, setMenuOpen] = useState(false);
+  const { user, setUser } = useUserStore();
+
+  const [loading, setLoading] = useState(true);
   const [selectedMenu, setSelectedMenu] = useState<string | null>(null);
 
   const COIN_TO_RUPEE = 0.3;
-  const coinValue = (coins * COIN_TO_RUPEE).toFixed(2);
+  
+  // ⬇️ FETCH USER FROM /api/me ON PAGE LOAD
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const res = await fetch("/api/me", { cache: "no-store" });
+        const data = await res.json();
 
-  const user = {
-    name: "Ravi Sharma",
-    phone: "+91 98765 43210",
-    memberSince: "2023",
-    photo: "/user/avatar.png",
-    coins: 1350,
-    tier: "Gold", // Add this required property
-    level: 7, // Optional: for progress tracking
-    progress: 65 // Optional: percentage to next level
-  };
+        if (res.ok) {
+          setUser(data.user);
+          localStorage.setItem("rk-user", JSON.stringify(data.user));
+        } else {
+          window.location.href = "/login";
+        }
+      } catch (err) {
+        console.error("ME API ERROR:", err);
+        window.location.href = "/login";
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadUser();
+  }, [setUser]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-lg text-gray-600">Loading your coins...</p>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  const coins = user.coins || 0;
+  const coinValue = (coins * COIN_TO_RUPEE).toFixed(2);
 
   const menus = [
     {id: "cash", label: "Convert to Cash", icon: IndianRupee, description: "Convert your coins into cash rewards"},
@@ -480,7 +508,7 @@ export default function CoinDashboard() {
                     onClick={() => handleMenuClick(menu.id)}
                     className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-gray-200 hover:border-primary hover:shadow-lg transition-all duration-200 group"
                   >
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-indigo-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                       <menu.icon className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-center">

@@ -10,6 +10,7 @@ import {
   ArrowRight,
   LogIn
 } from "lucide-react";
+import { useUserStore } from "@/store/userStore";
 
 // 1. Define strict types for your form state
 interface LoginFormState {
@@ -29,6 +30,7 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { setUser } = useUserStore();
 
   // Function to format the 10-digit number into 5-5 chunks for display
   const formatPhoneNumber = (number: string): string => {
@@ -88,20 +90,21 @@ export default function LoginForm() {
       const data = await res.json();
 
       if (res.ok) {
-        // Show success message
+        // Success
         setError("");
 
-        // Save token/session returned from backend
-        if (data.token) {
-          localStorage.setItem("authToken", data.token);
-        }
+        // Save user in Zustand and localStorage
+        setUser(data.user);
+        localStorage.setItem("rk-user", JSON.stringify(data.user));
 
-        // Redirect to dashboard or homepage
+        // Redirect to coins page
         window.location.href = "/coins";
 
       } else {
+        // Error
         setError(data.error || "Invalid credentials");
       }
+
 
     } catch (err) {
       console.error("Fetch error:", err);
