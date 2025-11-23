@@ -1,13 +1,18 @@
-import { Heart, Phone, MapPin, Clock, Star } from "lucide-react";
+import { Heart, Phone, MapPin, Clock, XCircle, CheckCircle } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
+  // Primary Accent Color: Indigo
+  const PRIMARY_COLOR_CLASSES = "text-indigo-600";
+  const PRIMARY_BG_CLASSES = "bg-indigo-600";
+  const PRIMARY_HOVER_CLASSES = "hover:text-indigo-800";
+  
   const quickLinks = [
-    { name: "Offers", href: "#offers" },
-    { name: "About", href: "#about" },
-    { name: "Winners", href: "#winners" },
-    { name: "Contact", href: "#contact" },
+    { name: "Offers & Deals", href: "#offers" },
+    { name: "About Our Store", href: "#about" },
+    { name: "Winner Hall of Fame", href: "#winners" },
+    { name: "Get in Touch", href: "#contact" },
   ];
 
   const contactInfo = [
@@ -23,46 +28,82 @@ export default function Footer() {
     },
     {
       icon: Clock,
-      text: "7AM-2PM • 4PM-10PM",
-      href: "#contact"
+      text: "Open: 7AM-2PM • 4PM-10PM",
+      href: "#hours"
     }
   ];
 
+  // --- Utility Function for Store Status ---
+  const getStoreStatus = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTimeInMinutes = currentHour * 60 + currentMinute;
+
+    // Slot 1: 7:00 AM (420 min) to 2:00 PM (840 min)
+    const slot1Start = 7 * 60; // 420
+    const slot1End = 14 * 60;  // 840
+
+    // Slot 2: 4:00 PM (960 min) to 10:00 PM (1320 min)
+    const slot2Start = 16 * 60; // 960
+    const slot2End = 22 * 60;  // 1320
+
+    const isOpen = 
+      (currentTimeInMinutes >= slot1Start && currentTimeInMinutes < slot1End) ||
+      (currentTimeInMinutes >= slot2Start && currentTimeInMinutes < slot2End);
+
+    return {
+      isOpen,
+      statusText: isOpen ? "Currently Open" : "Closed Now",
+      icon: isOpen ? CheckCircle : XCircle,
+      colorClass: isOpen ? "text-green-600" : "text-red-500",
+      dotClass: isOpen ? "bg-green-500" : "bg-red-500",
+    };
+  };
+
+  const storeStatus = getStoreStatus();
+
   return (
-    <footer className="bg-white border-t border-gray-200">
+    // Use a light gray border for separation
+    <footer className="bg-white border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Main Footer Content */}
-        <div className="py-8 sm:py-12 lg:py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12">
+        
+        {/* Main Footer Content Grid */}
+        <div className="py-12 md:py-16 lg:py-20">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-8 sm:gap-12">
             
-            {/* Store Info */}
-            <div className="text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Star className="w-5 h-5 text-primary" />
-                </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Ravi Kirana Store</h3>
+            {/* 1. Store Identity & Description */}
+            <div className="col-span-2 md:col-span-1 text-left">
+              <div className="flex items-center gap-3 mb-4">
+                {/* Store Name with Marathi text (assuming primary is set to indigo-600) */}
+                <h3 className={`text-xl font-extrabold ${PRIMARY_COLOR_CLASSES} tracking-tight`}>
+                  रवि किराना
+                </h3>
               </div>
-              <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-4">
-                Your trusted neighborhood store in Nashik since 2010. Quality groceries with exciting rewards on every purchase.
+              <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                Your reliable neighborhood grocery store in Nashik since 2010. We prioritize quality products and customer rewards.
               </p>
-              <div className="flex items-center justify-center md:justify-start gap-2 text-green-600 text-sm">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="font-medium">Open Now</span>
+              
+              {/* Dynamic Store Status Badge */}
+              <div className={`flex items-center gap-2 text-sm font-semibold ${storeStatus.colorClass}`}>
+                <storeStatus.icon className="w-4 h-4" />
+                <span>{storeStatus.statusText}</span>
               </div>
+              
             </div>
 
-            {/* Quick Links */}
-            <div className="text-center md:text-left">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Quick Links</h4>
-              <ul className="space-y-2 sm:space-y-3">
+            {/* 2. Quick Links */}
+            <div className="text-left">
+              <h4 className="text-base font-bold text-gray-900 mb-5 border-b-2 border-indigo-100 pb-1 inline-block">
+                Navigation
+              </h4>
+              <ul className="space-y-3">
                 {quickLinks.map((link) => (
                   <li key={link.name}>
                     <a
                       href={link.href}
-                      className="text-gray-600 hover:text-primary transition-colors duration-300 text-sm sm:text-base inline-flex items-center gap-2 group"
+                      className={`text-gray-600 ${PRIMARY_HOVER_CLASSES} transition-all duration-300 text-sm font-medium hover:underline hover:font-semibold`}
                     >
-                      <div className="w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       {link.name}
                     </a>
                   </li>
@@ -70,87 +111,101 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Contact Info */}
-            <div className="text-center md:text-left">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Contact Us</h4>
-              <div className="space-y-2 sm:space-y-3">
+            {/* 3. Contact Info */}
+            <div className="text-left">
+              <h4 className="text-base font-bold text-gray-900 mb-5 border-b-2 border-indigo-100 pb-1 inline-block">
+                Get in Touch
+              </h4>
+              <div className="space-y-3">
                 {contactInfo.map((item, index) => (
                   <a
                     key={index}
                     href={item.href}
                     target={item.href.includes('http') ? '_blank' : undefined}
                     rel={item.href.includes('http') ? 'noopener noreferrer' : undefined}
-                    className="flex items-center justify-center md:justify-start gap-3 text-gray-600 hover:text-primary transition-colors duration-300 group text-sm sm:text-base"
+                    className={`flex items-start gap-3 text-gray-600 ${PRIMARY_HOVER_CLASSES} transition-colors duration-300 group text-sm font-medium`}
                   >
-                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    <item.icon className={`w-4 h-4 flex-shrink-0 mt-1 ${PRIMARY_COLOR_CLASSES}`} />
                     <span>{item.text}</span>
                   </a>
                 ))}
               </div>
             </div>
 
-            {/* Store Features */}
-            <div className="text-center md:text-left">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Why Choose Us</h4>
-              <ul className="space-y-2 sm:space-y-3 text-gray-600 text-sm sm:text-base">
-                <li className="flex items-center justify-center md:justify-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-                  Fresh Quality Products
+            {/* 4. Store USPs/Features */}
+            <div className="text-left">
+              <h4 className="text-base font-bold text-gray-900 mb-5 border-b-2 border-indigo-100 pb-1 inline-block">
+                Our Commitments
+              </h4>
+              <ul className="space-y-3 text-gray-600 text-sm font-medium">
+                <li className="flex items-center gap-2">
+                  <div className={`w-1.5 h-1.5 ${PRIMARY_BG_CLASSES} rounded-full`}></div>
+                  Fresh, Certified Products
                 </li>
-                <li className="flex items-center justify-center md:justify-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-                  Reward Coins System
+                <li className="flex items-center gap-2">
+                  <div className={`w-1.5 h-1.5 ${PRIMARY_BG_CLASSES} rounded-full`}></div>
+                  Exclusive Rewards Program
                 </li>
-                <li className="flex items-center justify-center md:justify-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-                  Free Home Delivery
+                <li className="flex items-center gap-2">
+                  <div className={`w-1.5 h-1.5 ${PRIMARY_BG_CLASSES} rounded-full`}></div>
+                  Reliable Home Delivery
                 </li>
-                <li className="flex items-center justify-center md:justify-start gap-2">
-                  <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-                  14+ Years Experience
+                <li className="flex items-center gap-2">
+                  <div className={`w-1.5 h-1.5 ${PRIMARY_BG_CLASSES} rounded-full`}></div>
+                  14+ Years Trusted Service
                 </li>
               </ul>
             </div>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="border-t border-gray-200 py-6 sm:py-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center">
-            {/* Copyright */}
-            <div className="flex items-center justify-center gap-2 text-gray-500 text-sm sm:text-base order-2 sm:order-1">
-              <span>© {currentYear} Ravi Kirana Store</span>
-              <Heart className="w-4 h-4 text-primary fill-current" />
-              <span>All rights reserved</span>
+        {/* Bottom Bar (Professional and Simple) */}
+        <div className="border-t border-gray-100 py-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-center">
+            
+            {/* Copyright and Policy */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 text-gray-500 text-sm order-2 md:order-1">
+                {/* Copyright */}
+                <div className="flex items-center gap-1.5">
+                    <span>© {currentYear} Ravi Kirana Store. All rights reserved.</span>
+                </div>
+                {/* Separator and Policy Links */}
+                <span className="hidden sm:inline-block text-gray-300">•</span>
+                <div className="flex items-center gap-4">
+                    <a href="#privacy" className={`hover:underline ${PRIMARY_HOVER_CLASSES}`}>
+                        Privacy Policy
+                    </a>
+                    <a href="#terms" className={`hover:underline ${PRIMARY_HOVER_CLASSES}`}>
+                        Terms of Service
+                    </a>
+                </div>
             </div>
 
-            {/* Made with love */}
-            <div className="text-gray-500 text-sm sm:text-base order-1 sm:order-2">
-              <span className="flex items-center justify-center gap-1">
+            {/* Made with Ravi Pandey link */}
+            <div className="text-gray-500 text-xs sm:text-sm order-1 md:order-2">
+              <span className="flex items-center gap-1.5">
                 Made with 
-                <Heart className="w-4 h-4 text-primary fill-current animate-pulse" />
-                for our community
+                <Heart className={`w-4 h-4 ${PRIMARY_COLOR_CLASSES} fill-indigo-400 animate-pulse`} />
+                by 
+                <a 
+                    href="https://raviverse.dev" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={`font-semibold ${PRIMARY_COLOR_CLASSES} hover:underline`}
+                >
+                    Ravi Pandey
+                </a>
               </span>
             </div>
 
-            {/* Policy Links */}
-            <div className="flex items-center justify-center gap-4 text-gray-500 text-xs sm:text-sm order-3">
-              <a href="#privacy" className="hover:text-primary transition-colors duration-300">
-                Privacy
-              </a>
-              <span>•</span>
-              <a href="#terms" className="hover:text-primary transition-colors duration-300">
-                Terms
-              </a>
-            </div>
           </div>
         </div>
 
-        {/* Floating CTA for Mobile */}
-        <div className="lg:hidden fixed bottom-4 left-4 right-4 z-50">
+        {/* Floating CTA for Mobile (Fixed styling with Indigo) */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white p-4 border-t border-gray-200 shadow-2xl">
           <a
-            href="tel:+919876543210"
-            className="bg-primary text-white px-6 py-4 rounded-xl font-semibold shadow-lg hover:bg-primary/90 transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-3 text-base"
+            href="tel:+917058548204"
+            className={`${PRIMARY_BG_CLASSES} text-white px-6 py-3 rounded-xl font-bold shadow-xl hover:bg-indigo-700 transition-all duration-300 flex items-center justify-center gap-3 text-base`}
           >
             <Phone className="w-5 h-5" />
             Call Now for Delivery

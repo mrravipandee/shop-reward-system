@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from 'next/navigation';
 import { 
   User, Calendar, Phone, Lock, Eye, EyeOff, UserPlus, ArrowRight, Image as ImageIcon 
 } from "lucide-react";
@@ -163,6 +164,8 @@ export default function RegisterForm() {
     name: "", dob: "", phone: "", password: "", confirmPassword: "", image: null,
   });
 
+  const router = useRouter();
+
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -272,9 +275,12 @@ export default function RegisterForm() {
         const data = await res.json();
 
         if (res.ok) {
-            // Registration successful (200-299 status code)
-            setError(data.message || "Registration successful!");
-            // Optionally: Clear the form fields here: setForm({ name: "", dob: "", phone: "", password: "", confirmPassword: "", image: null });
+          // Registration successful (200-299 status code)
+            setError(data.message || "Registration successful! Redirecting to login...");
+            
+            setTimeout(() => {
+                router.push('/login'); 
+            }, 2000); 
         } else {
             // Registration failed (400 or 500 status code)
             setError(data.error || data.message || "Registration failed. Please try again.");
@@ -290,12 +296,12 @@ export default function RegisterForm() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8"> 
-      <div className="sm:mx-auto sm:w-full sm:max-w-xl">
+      <div className="sm:mx-auto sm:w-full sm:max-w-xl mt-12">
         {/* Header Section */}
         <div className="mx-auto h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
           <UserPlus className="h-6 w-6 text-indigo-600" />
         </div>
-        <h2 className="text-center text-3xl font-extrabold text-gray-900">
+        <h2 className="text-center text-2xl md:text-3xl font-extrabold text-gray-900">
           Create Your Account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">

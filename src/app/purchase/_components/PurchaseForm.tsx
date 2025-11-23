@@ -20,6 +20,7 @@ interface PurchaseFormProps {
   onComplete: () => void;
 }
 
+
 // --- Helper: Coin Calculation (As provided in input) ---
 const calculateCoins = (purchaseAmount: number): number => {
   if (purchaseAmount < 30) return 0;
@@ -184,6 +185,7 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
       alert("A critical error occurred during transaction.");
       setShowScratchCard(false);
       setIsScratched(false);
+      console.error("Transaction Error:", error);
     } finally {
       setIsProcessing(false);
     }

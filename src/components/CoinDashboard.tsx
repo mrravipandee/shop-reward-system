@@ -468,7 +468,7 @@ export default function CoinDashboard() {
             {/* Menu Grid */}
             <div className="mb-12">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Quick Access</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                 {menus.map((menu) => (
                   <button
                     key={menu.id}
@@ -476,12 +476,12 @@ export default function CoinDashboard() {
                     className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-gray-200 hover:border-primary hover:shadow-lg transition-all duration-200 group text-center"
                   >
                     <div className="w-14 h-14 bg-gradient-to-br from-primary to-indigo-600 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
-                      <menu.icon className="w-7 h-7 text-white" />
+                      <menu.icon className="w-5 h-5 md:w-7 md:h-7 text-white" />
                     </div>
-                    <div className="font-semibold text-gray-900 text-base">
+                    <div className="font-medium md:font-semibold text-gray-900 text-[12px] md:text-base ">
                       {menu.label}
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" />
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors hidden md:block" />
                   </button>
                 ))}
               </div>
@@ -492,7 +492,7 @@ export default function CoinDashboard() {
           <div className="max-w-7xl mx-auto">
              <h2 className="text-3xl font-bold text-gray-900 mb-6 border-b pb-2">Featured Rewards</h2>
              
-             <div className="text-center py-12 bg-indigo-50 rounded-xl shadow-inner">
+             <div className="text-center py-12 bg-indigo-50 rounded-xl shadow-inner p-3">
                 <h3 className="text-2xl font-bold text-indigo-900 mb-4">Ready to Redeem?</h3>
                 <p className="text-indigo-700 mb-6">Click on **Rewards Store** in the Quick Access panel above to browse all products and cashback offers!</p>
                 <button
