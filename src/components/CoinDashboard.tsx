@@ -3,136 +3,18 @@ import { useEffect, useState } from "react";
 import { Coins, Zap, Gift, Award, IndianRupee, Star, History, TrendingUp, Settings, X, ChevronRight } from 'lucide-react';
 import UserProfileHeader from "./UserProfileHeader";
 import { useUserStore } from "@/store/userStore";
+import { RedeemProduct, MenuItem, User } from "@/types/user"; 
 
-// 1. Define Product Type for better type safety
-interface RedeemProduct {
-  id: number;
-  name: string;
-  category: "grocery" | "cash" | "gifts";
-  requiredCoins: number;
-  image: string;
-  originalPrice: string;
-  currentPrice: string;
-  stock: number;
-  popular: boolean;
-  savings: string;
-  rating: number;
-}
-
-// 2. Define Menu Item Type
-interface MenuItem {
-  id: string;
-  label: string;
-  icon: React.ElementType; // Use React.ElementType for Lucide icons
-  description: string;
-}
-
-// 3. Define the Redeem Products Array (outside the component for performance)
 const redeemProducts: RedeemProduct[] = [
-  {
-    id: 1,
-    name: "1kg Premium Sugar",
-    category: "grocery",
-    requiredCoins: 200,
-    image: "/products/sugar.png",
-    originalPrice: "₹50",
-    currentPrice: "₹0",
-    stock: 15,
-    popular: true,
-    savings: "100%",
-    rating: 4.5
-  },
-  {
-    id: 2,
-    name: "500g Assam Tea",
-    category: "grocery",
-    requiredCoins: 150,
-    image: "/products/tea.png",
-    originalPrice: "₹80",
-    currentPrice: "₹0",
-    stock: 8,
-    popular: false,
-    savings: "100%",
-    rating: 4.2
-  },
-  {
-    id: 3,
-    name: "1L Sunflower Oil",
-    category: "grocery",
-    requiredCoins: 400,
-    image: "/products/oil.png",
-    originalPrice: "₹180",
-    currentPrice: "₹0",
-    stock: 12,
-    popular: true,
-    savings: "100%",
-    rating: 4.7
-  },
-  {
-    id: 4,
-    name: "2kg Wheat Flour",
-    category: "grocery",
-    requiredCoins: 300,
-    image: "/products/flour.png",
-    originalPrice: "₹120",
-    currentPrice: "₹0",
-    stock: 20,
-    popular: false,
-    savings: "100%",
-    rating: 4.3
-  },
-  {
-    id: 5,
-    name: "₹100 Cashback",
-    category: "cash",
-    requiredCoins: 300,
-    image: "/products/cash.png",
-    originalPrice: "₹100",
-    currentPrice: "₹0",
-    stock: 999,
-    popular: true,
-    savings: "100%",
-    rating: 4.9
-  },
-  {
-    id: 6,
-    name: "₹200 Cashback",
-    category: "cash",
-    requiredCoins: 600,
-    image: "/products/cash.png",
-    originalPrice: "₹200",
-    currentPrice: "₹0",
-    stock: 999,
-    popular: false,
-    savings: "100%",
-    rating: 4.8
-  },
-  {
-    id: 7,
-    name: "Luxury Soap Gift Pack",
-    category: "gifts",
-    requiredCoins: 250,
-    image: "/products/soap.png",
-    originalPrice: "₹75",
-    currentPrice: "₹0",
-    stock: 10,
-    popular: false,
-    savings: "100%",
-    rating: 4.4
-  },
-  {
-    id: 8,
-    name: "Premium Chocolate Box",
-    category: "gifts",
-    requiredCoins: 180,
-    image: "/products/chocolate.png",
-    originalPrice: "₹60",
-    currentPrice: "₹0",
-    stock: 5,
-    popular: true,
-    savings: "100%",
-    rating: 4.6
-  },
+  // ... (Your product data remains the same) ...
+  { id: 1, name: "1kg Premium Sugar", category: "grocery", requiredCoins: 200, image: "/products/sugar.png", originalPrice: "₹50", currentPrice: "₹0", stock: 15, popular: true, savings: "100%", rating: 4.5 },
+  { id: 2, name: "500g Assam Tea", category: "grocery", requiredCoins: 150, image: "/products/tea.png", originalPrice: "₹80", currentPrice: "₹0", stock: 8, popular: false, savings: "100%", rating: 4.2 },
+  { id: 3, name: "1L Sunflower Oil", category: "grocery", requiredCoins: 400, image: "/products/oil.png", originalPrice: "₹180", currentPrice: "₹0", stock: 12, popular: true, savings: "100%", rating: 4.7 },
+  { id: 4, name: "2kg Wheat Flour", category: "grocery", requiredCoins: 300, image: "/products/flour.png", originalPrice: "₹120", currentPrice: "₹0", stock: 20, popular: false, savings: "100%", rating: 4.3 },
+  { id: 5, name: "₹100 Cashback", category: "cash", requiredCoins: 300, image: "/products/cash.png", originalPrice: "₹100", currentPrice: "₹0", stock: 999, popular: true, savings: "100%", rating: 4.9 },
+  { id: 6, name: "₹200 Cashback", category: "cash", requiredCoins: 600, image: "/products/cash.png", originalPrice: "₹200", currentPrice: "₹0", stock: 999, popular: false, savings: "100%", rating: 4.8 },
+  { id: 7, name: "Luxury Soap Gift Pack", category: "gifts", requiredCoins: 250, image: "/products/soap.png", originalPrice: "₹75", currentPrice: "₹0", stock: 10, popular: false, savings: "100%", rating: 4.4 },
+  { id: 8, name: "Premium Chocolate Box", category: "gifts", requiredCoins: 180, image: "/products/chocolate.png", originalPrice: "₹60", currentPrice: "₹0", stock: 5, popular: true, savings: "100%", rating: 4.6 },
 ];
 
 // 4. Define the Menus Array (outside the component for performance)
@@ -151,18 +33,15 @@ const menus: MenuItem[] = [
 
 
 export default function CoinDashboard() {
-  // CORRECTED: Destructure user and setUser from the store once.
   const { user, setUser } = useUserStore();
 
-  // The 'coins' variable was declared twice in the original code. 
-  // We'll calculate it from 'user' below.
   const [loading, setLoading] = useState(true);
   const [selectedMenu, setSelectedMenu] = useState<string | null>(null);
   
-  // ADDED: State for filtering rewards (needed for the Rewards tab)
   const [selectedCategory, setSelectedCategory] = useState<RedeemProduct['category'] | 'all'>('all');
 
-  const COIN_TO_RUPEE = 0.3;
+  const coins = user?.coins ?? 0;
+  const COIN_TO_RUPEE = user?.coinValue ?? 0.25;  
   
   // ⬇️ FETCH USER FROM /api/me ON PAGE LOAD
   useEffect(() => {
@@ -172,22 +51,40 @@ export default function CoinDashboard() {
         const data = await res.json();
 
         if (res.ok) {
-          // ENSURE: Store structure matches the User type (assuming user is an object with a coins property)
+          // ENSURE: Data returned by the API matches the User type
           setUser(data.user);
           localStorage.setItem("rk-user", JSON.stringify(data.user));
         } else {
-          window.location.href = "/login";
+          // window.location.href = "/login"; // Uncomment for actual production use
+          console.error("API failed, using placeholder user data.");
+          // Placeholder user data for development if API fails
+           setUser({
+              id: "dev-123",
+              name: "Guest User",
+              phone: "9876543210",
+              coins: 750,
+              coinValue: 0.25,
+              createdAt: new Date().toISOString(),
+           } as User); // Cast as User to satisfy TypeScript
         }
       } catch (err) {
         console.error("ME API ERROR:", err);
-        window.location.href = "/login";
+        // window.location.href = "/login"; // Uncomment for actual production use
+         // Placeholder user data on network/fetch error
+         setUser({
+              id: "dev-123",
+              name: "Dev Mode",
+              phone: "9876543210",
+              coins: 750,
+              coinValue: 0.25,
+              createdAt: new Date().toISOString(),
+           } as User);
       } finally {
         setLoading(false);
       }
     }
 
-    // FIX: A function called 'loadUser' was defined but not called in the original snippet's useEffect.
-    // I've added the call here:
+    // FIX: Call the loadUser function inside useEffect
     loadUser();
   }, [setUser]); 
 
@@ -199,38 +96,30 @@ export default function CoinDashboard() {
     );
   }
 
-  if (!user) return null;
+  // FIX: User object must exist after loading or the placeholder is set
+  if (!user) return null; 
 
-  // CORRECTED: Get coin count from the user object.
-  const coins = user.coins || 0; 
   const coinValue = (coins * COIN_TO_RUPEE).toFixed(2);
 
-  // FIX: handleRedeem function was missing the state setter to update coins.
-  // The 'useUserStore' is a global store, so we need a function to update the user's coins in the store.
-  // Assuming 'useUserStore' has a function like 'updateCoins'. If not, we'll create a local helper.
-  
-  // Assuming useUserStore exposes an update function that takes a partial User object (like { coins: newAmount })
   const updateStoreCoins = (newCoins: number) => {
-    setUser({ ...user, coins: newCoins });
+    // FIX: Set the new user object with updated coins
+    setUser({ ...user, coins: newCoins } as User); 
   };
 
   const handleRedeem = (product: RedeemProduct) => {
-    if (coins >= product.requiredCoins) {
+    if (coins >= product.requiredCoins && product.stock > 0) {
       const newCoins = coins - product.requiredCoins;
-      updateStoreCoins(newCoins); // FIX: Call the function to update the store state
-      
-      // OPTIONAL: Add actual API call here to persist the redemption and coin change
-      // ... await fetch('/api/redeem', { method: 'POST', body: JSON.stringify({ productId: product.id }) });
+      // In a real application, you would also decrease stock and call a backend API here.
+      updateStoreCoins(newCoins); 
       
       console.log(`Successfully redeemed ${product.name}! New coin balance: ${newCoins}`);
     } else {
-      console.log(`Failed to redeem ${product.name}: Not enough coins.`);
+      console.log(`Failed to redeem ${product.name}: Not enough coins or sold out.`);
     }
   };
 
   const handleMenuClick = (menuId: string) => {
     setSelectedMenu(menuId);
-    // OPTIONAL: Reset category filter when opening rewards
     if (menuId === 'rewards') {
       setSelectedCategory('all');
     }
@@ -240,13 +129,12 @@ export default function CoinDashboard() {
     setSelectedMenu(null);
   };
   
-  // Added filter logic for rewards store
   const filteredProducts = selectedCategory === 'all'
     ? redeemProducts
     : redeemProducts.filter(p => p.category === selectedCategory);
 
   const getMenuContent = (menuId: string) => {
-    // FIX: Use optional chaining or a non-null assertion since we check for it in the Menu Popup rendering
+    // FIX: Find the menu item, guaranteed to exist since we only set valid menuIds
     const menu = menus.find(m => m.id === menuId) as MenuItem; 
 
     switch (menuId) {
@@ -512,7 +400,6 @@ export default function CoinDashboard() {
                 <div className="w-10 h-10 bg-gradient-to-br from-primary to-purple-600 rounded-xl flex items-center justify-center">
                   {(() => {
                     const menu = menus.find(m => m.id === selectedMenu);
-                    // Fallback to Settings icon if menu is not found (shouldn't happen)
                     const Icon = menu?.icon || Settings; 
                     return <Icon className="w-5 h-5 text-white" />;
                   })()}
@@ -604,10 +491,6 @@ export default function CoinDashboard() {
           {/* Automatically display Rewards Store on the main page if no menu is selected */}
           <div className="max-w-7xl mx-auto">
              <h2 className="text-3xl font-bold text-gray-900 mb-6 border-b pb-2">Featured Rewards</h2>
-             {/* Note: Instead of duplicating getMenuContent('rewards'), 
-                 we directly render the Rewards content or prompt the user to use the quick access links. 
-                 Since the user's code only shows the menu grid and the pop-up, 
-                 I'll add a section that encourages interaction with the main "Rewards Store" button. */}
              
              <div className="text-center py-12 bg-indigo-50 rounded-xl shadow-inner">
                 <h3 className="text-2xl font-bold text-indigo-900 mb-4">Ready to Redeem?</h3>

@@ -45,6 +45,9 @@ export async function POST(req: Request) {
         name: user.name,
         phone: user.phone,
         coins: user.coins,
+        coinValue: user.coinValue, 
+        photo: user.photo,
+        memberSince: user.createdAt,
       },
     });
 

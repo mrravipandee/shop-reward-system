@@ -18,7 +18,8 @@ export async function GET() {
       );
     }
 
-    // Find user using stored ID
+    // Find user (excluding password)
+    // NOTE: The userToken must contain the MongoDB ObjectId (_id) of the user
     const user = await User.findById(userToken).select("-password");
 
     if (!user) {
@@ -28,9 +29,25 @@ export async function GET() {
       );
     }
 
+    // Clean response → Return fields matching the frontend's 'User' type
     return NextResponse.json({
-      user,
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        phone: user.phone,
+        dob: user.dob,
+        photo: user.photo,
+        coins: user.coins,
+        coinValue: user.coinValue,
+        totalSpent: user.totalSpent,
+        weeklySpent: user.weeklySpent,
+        monthlySpent: user.monthlySpent,
+        // FIX: Map the Mongoose 'createdAt' field to 'createdAt' 
+        // to match the frontend 'User' interface.
+        createdAt: user.createdAt, 
+      },
     });
+
   } catch (err) {
     console.error("ME API ERROR:", err);
     return NextResponse.json(

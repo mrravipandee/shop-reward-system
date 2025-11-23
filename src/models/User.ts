@@ -7,6 +7,7 @@ export interface IUser extends Document {
   password: string;
   photo?: string;
   coins: number;
+  coinValue: number;
   totalSpent: number;
   weeklySpent: number;
   monthlySpent: number;
@@ -26,6 +27,8 @@ const UserSchema = new Schema<IUser>(
     photo: { type: String, default: "" },
 
     coins: { type: Number, default: 0 },
+
+    coinValue: { type: Number, default: 0.25 },
 
     totalSpent: { type: Number, default: 0 },
 

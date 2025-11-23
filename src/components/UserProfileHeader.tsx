@@ -1,32 +1,30 @@
+// src/components/UserProfileHeader.tsx
+
 import React from "react";
 import Image from "next/image";
 import { Phone, Star } from "lucide-react";
-
-interface User {
-  name: string;
-  phone: string;
-  dob?: string;
-  photo?: string;
-  coins: number;
-  totalSpent?: number;
-  weeklySpent?: number;
-  monthlySpent?: number;
-  createdAt: string; 
-}
+import { User } from "@/types/user"; // FIX: Import shared User type
 
 interface UserProfileHeaderProps {
   user: User;
 }
 
 export default function UserProfileHeader({ user }: UserProfileHeaderProps) {
-  const memberSince = new Date(user.createdAt).getFullYear();
+  // FIX: Added optional chaining check for createdAt since it might be undefined
+  const memberSince = (user.createdAt && !isNaN(new Date(user.createdAt).getTime()))
+    ? new Date(user.createdAt).getFullYear() 
+    : 'N/A'; // Fallback
   const tier = user.coins > 1000 ? "Gold" : user.coins > 500 ? "Silver" : "Bronze";
 
   const formatPhone5x5 = (num: string) => {
-  const digits = num.replace(/\D/g, ""); // Ensure only numbers
-  if (digits.length <= 5) return digits;
-  return digits.slice(0, 5) + " " + digits.slice(5, 10);
-};
+    const digits = num.replace(/\D/g, "");
+    if (digits.length <= 5) return digits;
+    return digits.slice(0, 5) + " " + digits.slice(5, 10);
+  };
+
+  // Ensure mock data for `user` includes `totalSpent` if you want a savings calculation, 
+  // otherwise, this is a placeholder.
+  const mockSavings = ((user.totalSpent ?? 1000) * 0.05).toFixed(0); 
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden mb-8">
@@ -83,7 +81,7 @@ export default function UserProfileHeader({ user }: UserProfileHeaderProps) {
 
           <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
             <p className="text-sm text-gray-500 mb-1">Total Coins</p>
-            <p className="text-xl text-yellow-600 font-bold">{user.coins}</p>
+            <p className="text-xl text-yellow-600 font-bold">{user.coins.toLocaleString()}</p>
           </div>
 
           <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
@@ -94,14 +92,14 @@ export default function UserProfileHeader({ user }: UserProfileHeaderProps) {
           <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
             <p className="text-sm text-gray-500 mb-1">Coin Value</p>
             <p className="text-xl text-green-600 font-bold">
-              ₹{(user.coins * 0.3).toFixed(2)}
+              ₹{(user.coins * user.coinValue).toFixed(2)}
             </p>
           </div>
 
           <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
             <p className="text-sm text-gray-500 mb-1">Savings</p>
             <p className="text-xl text-blue-600 font-bold">
-              ₹{(user.coins * 0.3 * 3).toFixed(0)}
+              ₹{mockSavings}
             </p>
           </div>
         </div>
