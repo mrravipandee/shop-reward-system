@@ -7,17 +7,18 @@ import {
   Coins, Scissors,
   User, CheckCircle2, Eye, EyeOff, Loader2, Lock, X
 } from "lucide-react";
+import { PurchaseData } from "@/types/purchase";
 
 // --- Type Definitions ---
 interface TransactionSuccessData {
   success: boolean;
   newBalance: number;
   userName: string;
-  error?: string; // Optional error field for API responses
+  error?: string; 
 }
 
 interface PurchaseFormProps {
-  onComplete: () => void;
+  onComplete: (data: PurchaseData) => void; 
 }
 
 
