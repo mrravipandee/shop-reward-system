@@ -1,9 +1,7 @@
 "use client";
 import { useState } from "react";
-import WelcomePage from "./_components/welcome";
-import PurchaseForm from "./_components/PurchaseForm";
-import { PurchaseData } from "@/types/purchase";
-
+import WelcomePage from "./_components/welcome"; 
+import PurchaseForm from "./_components/PurchaseForm"; 
 
 export default function PurchasePage() {
   const [showWelcome, setShowWelcome] = useState(true);
@@ -12,17 +10,10 @@ export default function PurchasePage() {
     setShowWelcome(false);
   };
 
-  // 1. Updated the data type from 'any' to a specific interface
-  const handlePurchaseComplete = (data: PurchaseData) => {
-    console.log("Purchase Completed:", data);
-    if (data.success) {
-      alert(`Purchase successful! ${data.userName} now has ${data.newBalance} coins.`);
-    } else {
-      alert("Transaction completed, but received unexpected data.");
-    }
-    window.location.reload();
+  const handlePurchaseComplete = () => {
+    console.log("Purchase Completed");
+    // Additional logic can be added here if needed
   };
-
 
   if (showWelcome) {
     return (
