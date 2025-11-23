@@ -1,6 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
-import { X, Gift, Award, Crown, Sparkles, Star, Coins, IndianRupee, Phone, MapPin, ShoppingBag, ArrowRight } from "lucide-react";
+import { 
+  X, Gift, Award, Crown, Sparkles, Star, Coins, 
+  IndianRupee, ShoppingBag, ArrowRight 
+} from "lucide-react";
 
 interface WelcomePageProps {
   onContinue?: () => void;
@@ -11,7 +14,6 @@ export default function WelcomePage({ onContinue }: WelcomePageProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Small delay for animation
     setTimeout(() => setIsVisible(true), 100);
   }, []);
 
@@ -22,91 +24,67 @@ export default function WelcomePage({ onContinue }: WelcomePageProps) {
     }, 300);
   };
 
+  // Simplified Popup Content
   const popups = {
     claim: {
-      title: "Claim Your Reward 🎁",
-      icon: <Gift className="w-6 h-6 text-primary" />,
+      title: "Claim Reward 🎁",
+      icon: <Gift className="w-5 h-5 text-primary" />,
       content: (
         <div className="space-y-4">
-          <p className="text-secondary/80 text-sm leading-relaxed">
-            Congratulations! You have earned <span className="font-bold text-primary">150 coins</span> that are ready to be claimed.
-          </p>
-          <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-secondary text-sm font-medium">Available Coins:</span>
-              <span className="text-primary font-bold text-lg">150</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-secondary text-sm font-medium">Coin Value:</span>
-              <span className="text-primary font-bold">₹45</span>
-            </div>
+          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 text-center">
+            <p className="text-secondary/70 text-sm mb-1">Available Balance</p>
+            <div className="text-3xl font-bold text-primary">150 Coins</div>
+            <div className="text-sm text-secondary font-medium mt-1">Value: ₹45</div>
           </div>
-          <button className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-all duration-300">
-            Claim Now
+          <button className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 active:scale-95 transition-all">
+            Claim to Wallet
           </button>
         </div>
       )
     },
     offer: {
-      title: "Best Offer 🔥",
-      icon: <Award className="w-6 h-6 text-primary" />,
+      title: "Today's Offer 🔥",
+      icon: <Award className="w-5 h-5 text-primary" />,
       content: (
         <div className="space-y-4">
-          <p className="text-secondary/80 text-sm leading-relaxed">
-            Today&apos;s special offer! Get amazing discounts on your favorite products.
-          </p>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <Star className="w-4 h-4 text-yellow-600" />
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <div className="bg-yellow-100 p-2 rounded-lg">
+                <Star className="w-5 h-5 text-yellow-600" />
               </div>
               <div>
-                <h4 className="font-bold text-secondary text-sm">Weekend Special</h4>
-                <p className="text-yellow-700 text-xs">20% OFF on all groceries</p>
-              </div>
-            </div>
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between">
-                <span>Valid until:</span>
-                <span className="font-semibold">Sunday, 11:59 PM</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Minimum purchase:</span>
-                <span className="font-semibold">₹200</span>
+                <h4 className="font-bold text-secondary">Weekend Special</h4>
+                <p className="text-yellow-700 text-sm">Flat 20% OFF on groceries</p>
+                <p className="text-xs text-yellow-600 mt-1 font-medium">Min Order: ₹200</p>
               </div>
             </div>
           </div>
-          <button className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-all duration-300">
-            Shop Now
+          <button className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 active:scale-95 transition-all">
+            Copy Coupon
           </button>
         </div>
       )
     },
     win: {
-      title: "Win Prices 🏆",
-      icon: <Crown className="w-6 h-6 text-primary" />,
+      title: "Daily Lucky Draw 🏆",
+      icon: <Crown className="w-5 h-5 text-primary" />,
       content: (
         <div className="space-y-4">
-          <p className="text-secondary/80 text-sm leading-relaxed">
-            Participate in our daily lucky draw and win exciting prizes! Every purchase gives you a chance to win.
-          </p>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { prize: "₹500 Cash", icon: <IndianRupee className="w-4 h-4" /> },
-              { prize: "Free Groceries", icon: <Gift className="w-4 h-4" /> },
-              { prize: "1000 Coins", icon: <Coins className="w-4 h-4" /> },
-              { prize: "Gift Hamper", icon: <Award className="w-4 h-4" /> }
-            ].map((item, index) => (
-              <div key={index} className="bg-primary/5 rounded-lg p-2 text-center border border-primary/10">
-                <div className="flex justify-center text-primary mb-1">
-                  {item.icon}
-                </div>
-                <span className="text-xs font-medium text-secondary">{item.prize}</span>
+              { label: "₹500 Cash", icon: <IndianRupee className="w-3 h-3" /> },
+              { label: "Free Kit", icon: <Gift className="w-3 h-3" /> },
+              { label: "1k Coins", icon: <Coins className="w-3 h-3" /> },
+              { label: "Hamper", icon: <Award className="w-3 h-3" /> }
+            ].map((item, i) => (
+              <div key={i} className="bg-secondary/5 border border-secondary/10 p-2 rounded-lg flex flex-col items-center justify-center gap-1">
+                <div className="text-primary">{item.icon}</div>
+                <span className="text-xs font-medium text-secondary">{item.label}</span>
               </div>
             ))}
           </div>
-          <button className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-all duration-300">
-            Check Winners
+          <button className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 active:scale-95 transition-all">
+            Enter Draw
           </button>
         </div>
       )
@@ -114,195 +92,145 @@ export default function WelcomePage({ onContinue }: WelcomePageProps) {
   };
 
   return (
-    <div className={`w-full max-w-4xl mx-4 bg-white rounded-3xl shadow-2xl border border-secondary/10 overflow-hidden transition-all duration-500 ${
-      isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-    }`}>
-      <div className="grid lg:grid-cols-2">
-        
-        {/* Left Content */}
-        <div className="p-6 sm:p-8 lg:p-10 space-y-6 sm:space-y-8">
-          {/* Header */}
-          <div className="text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full text-primary font-medium text-xs sm:text-sm mb-3">
-              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span>Welcome to Ravi Kirana</span>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div 
+        className={`w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden transition-all duration-500 ease-out ${
+          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+        }`}
+      >
+        <div className="grid lg:grid-cols-5 h-full">
+          
+          {/* Left Content (Span 3 on large screens, full on mobile) */}
+          <div className="lg:col-span-3 p-6 sm:p-8 flex flex-col justify-center relative">
             
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-secondary mb-3 sm:mb-4 leading-tight">
-              Your Daily <span className="text-primary">Rewards</span> 🎉
-            </h1>
-            
-            <p className="text-secondary/80 text-sm sm:text-base leading-relaxed">
-              Shop at Ravi Kirana Store and unlock amazing rewards, exclusive offers, and chances to win big prizes with every purchase.
-            </p>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3 sm:gap-4 text-center lg:text-left">
-            {[
-              { number: "500+", label: "Customers" },
-              { number: "50+", label: "Winners" },
-              { number: "₹1000+", label: "Rewards" }
-            ].map((stat, index) => (
-              <div key={index} className="bg-secondary/5 rounded-lg p-3 sm:p-4">
-                <div className="text-lg sm:text-xl font-bold text-primary mb-1">{stat.number}</div>
-                <div className="text-secondary/70 text-xs sm:text-sm">{stat.label}</div>
+            {/* Header */}
+            <div className="space-y-2 mb-6 sm:mb-8">
+              <div className="inline-flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full text-primary font-medium text-xs w-fit">
+                <Sparkles className="w-3 h-3" />
+                <span>Welcome Back</span>
               </div>
-            ))}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {[
-              { key: "claim", label: "Claim Reward", icon: <Gift className="w-4 h-4 sm:w-5 sm:h-5" />, color: "bg-primary text-white hover:bg-primary/90" },
-              { key: "offer", label: "Best Offer", icon: <Award className="w-4 h-4 sm:w-5 sm:h-5" />, color: "bg-white text-primary border border-primary hover:bg-primary/5" },
-              { key: "win", label: "Win Prices", icon: <Crown className="w-4 h-4 sm:w-5 sm:h-5" />, color: "bg-white text-primary border border-primary hover:bg-primary/5" }
-            ].map((button) => (
-              <button
-                key={button.key}
-                onClick={() => setActivePopup(button.key)}
-                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold transition-all duration-300 ${button.color}`}
-              >
-                {button.icon}
-                <span className="text-xs sm:text-sm">{button.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Quick Info */}
-          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Star className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-secondary text-sm mb-1">Why Choose Us?</h3>
-                <p className="text-secondary/80 text-xs">
-                  Fresh products • Best prices • Instant rewards • Free delivery
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Contact CTA & Continue Button */}
-          <div className="space-y-3">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <a
-                href="tel:+919876543210"
-                className="flex items-center justify-center gap-2 bg-secondary text-white py-3 px-4 rounded-lg font-semibold hover:bg-secondary/90 transition-all duration-300 text-sm flex-1"
-              >
-                <Phone className="w-4 h-4" />
-                Call for Delivery
-              </a>
-              <a
-                href="#contact"
-                className="flex items-center justify-center gap-2 border border-secondary text-secondary py-3 px-4 rounded-lg font-semibold hover:bg-secondary hover:text-white transition-all duration-300 text-sm flex-1"
-              >
-                <MapPin className="w-4 h-4" />
-                Visit Store
-              </a>
+              <h1 className="text-2xl sm:text-3xl font-bold text-secondary">
+                Ravi Kirana <span className="text-primary">Rewards</span>
+              </h1>
+              <p className="text-secondary/70 text-sm sm:text-base leading-relaxed max-w-md">
+                We&apos;ve missed you! Check out your exclusive rewards and today&apos;s special offers before you shop.
+              </p>
             </div>
 
-            {/* Continue Button */}
+            {/* Interactive Grid */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8">
+              {[
+                { key: "claim", label: "Claim", sub: "Reward", icon: <Gift className="w-5 h-5" />, bg: "bg-blue-50 text-blue-600 border-blue-100" },
+                { key: "offer", label: "Offers", sub: "View", icon: <Award className="w-5 h-5" />, bg: "bg-orange-50 text-orange-600 border-orange-100" },
+                { key: "win", label: "Prizes", sub: "Play", icon: <Crown className="w-5 h-5" />, bg: "bg-purple-50 text-purple-600 border-purple-100" }
+              ].map((btn) => (
+                <button
+                  key={btn.key}
+                  onClick={() => setActivePopup(btn.key)}
+                  className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 ${btn.bg}`}
+                >
+                  <div className="mb-1">{btn.icon}</div>
+                  <span className="text-xs font-bold">{btn.label}</span>
+                  <span className="text-[10px] opacity-70">{btn.sub}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Social Proof Stats (Simplified) */}
+            <div className="flex items-center justify-between bg-secondary/5 rounded-xl p-4 mb-6">
+              <div className="text-center flex-1 border-r border-secondary/10 last:border-0">
+                <div className="text-lg font-bold text-secondary">50+</div>
+                <div className="text-[10px] text-secondary/60 uppercase tracking-wide">Winners</div>
+              </div>
+              <div className="text-center flex-1 border-r border-secondary/10 last:border-0">
+                <div className="text-lg font-bold text-secondary">₹1k+</div>
+                <div className="text-[10px] text-secondary/60 uppercase tracking-wide">Given</div>
+              </div>
+              <div className="text-center flex-1">
+                <div className="text-lg font-bold text-secondary">100%</div>
+                <div className="text-[10px] text-secondary/60 uppercase tracking-wide">Genuine</div>
+              </div>
+            </div>
+
+            {/* Primary Action */}
             <button
               onClick={handleContinue}
-              className="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary/90 transition-all duration-300 transform hover:scale-105 group"
+              className="w-full group bg-primary text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-primary/20 hover:bg-primary/90 hover:shadow-primary/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >
-              <span>Continue to Main Page</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+              <span>Enter Store</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
-        </div>
 
-        {/* Right Image */}
-        <div className="bg-gradient-to-br from-primary/10 to-secondary/10 p-6 sm:p-8 lg:p-10 flex items-center justify-center relative">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto">
-              <ShoppingBag className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-bold text-secondary text-lg sm:text-xl mb-2">Ravi Kirana Store</h3>
-              <p className="text-secondary/80 text-sm sm:text-base">Your Trusted Neighborhood Store</p>
-            </div>
-            
-            {/* Floating Elements */}
-            <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-lg text-xs font-semibold">
-              <div className="flex items-center gap-1">
-                <Coins className="w-3 h-3" />
-                <span>Earn Coins</span>
+          {/* Right Image - HIDDEN ON MOBILE */}
+          {/* Only visible on large screens to keep mobile clean */}
+          <div className="hidden lg:flex lg:col-span-2 bg-gradient-to-br from-primary/5 to-primary/10 relative items-center justify-center p-8">
+            <div className="relative w-full max-w-[200px] aspect-square">
+              <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
+              <div className="relative bg-white p-6 rounded-3xl shadow-xl border border-primary/10 flex flex-col items-center justify-center text-center h-full">
+                <ShoppingBag className="w-16 h-16 text-primary mb-4" />
+                <h3 className="font-bold text-secondary">Shop Smart</h3>
+                <p className="text-xs text-secondary/60 mt-1">Save more with every order</p>
               </div>
-            </div>
-
-            <div className="absolute bottom-4 right-4 bg-white border border-secondary/20 px-3 py-1 rounded-lg shadow-sm">
-              <div className="flex items-center gap-1">
-                <Gift className="w-3 h-3 text-primary" />
-                <div>
-                  <div className="font-bold text-secondary text-xs">500+</div>
-                  <div className="text-secondary/70 text-xs">Rewards</div>
-                </div>
+              
+              {/* Floating Badges */}
+              <div className="absolute -top-4 -right-4 bg-white px-3 py-1.5 rounded-lg shadow-md border border-secondary/10 flex items-center gap-1.5 animate-bounce" style={{ animationDuration: '3s' }}>
+                 <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                 <span className="text-xs font-bold text-secondary">Best Prices</span>
               </div>
-            </div>
-
-            <div className="absolute top-4 right-4 bg-yellow-100 border border-yellow-200 px-3 py-1 rounded-lg">
-              <div className="flex items-center gap-1 text-yellow-700">
-                <Crown className="w-3 h-3" />
-                <span className="font-semibold text-xs">Win Prizes</span>
+              <div className="absolute -bottom-4 -left-4 bg-white px-3 py-1.5 rounded-lg shadow-md border border-secondary/10 flex items-center gap-1.5 animate-bounce" style={{ animationDuration: '4s' }}>
+                 <Gift className="w-3 h-3 text-primary" />
+                 <span className="text-xs font-bold text-secondary">Free Gifts</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Popup Modal */}
+      {/* Minimalist Modal Popup */}
       {activePopup && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-auto animate-scaleIn">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
+        <div className="absolute inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4">
+          <div 
+            className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"
+            onClick={() => setActivePopup(null)}
+          />
+          <div className="relative bg-white w-full sm:w-[350px] rounded-t-3xl sm:rounded-3xl p-6 animate-slideUp sm:animate-scaleIn shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2 text-lg font-bold text-secondary">
                 {popups[activePopup as keyof typeof popups].icon}
-                <h2 className="text-lg font-bold text-secondary">
-                  {popups[activePopup as keyof typeof popups].title}
-                </h2>
+                {popups[activePopup as keyof typeof popups].title}
               </div>
-              <button
+              <button 
                 onClick={() => setActivePopup(null)}
-                className="w-6 h-6 rounded-full bg-secondary/10 hover:bg-secondary/20 transition-colors duration-200 flex items-center justify-center"
+                className="p-1 rounded-full hover:bg-secondary/5 transition-colors"
               >
-                <X className="w-3 h-3 text-secondary" />
+                <X className="w-5 h-5 text-secondary/50" />
               </button>
             </div>
-
-            {/* Content */}
+            
             {popups[activePopup as keyof typeof popups].content}
 
-            {/* Continue Button */}
             <button
               onClick={() => setActivePopup(null)}
-              className="w-full mt-3 py-2 border border-secondary/20 text-secondary rounded-lg font-medium hover:bg-secondary/5 transition-all duration-300 text-sm"
+              className="w-full mt-4 py-3 text-secondary/60 text-sm font-medium hover:text-secondary transition-colors"
             >
-              Continue Browsing
+              Close
             </button>
           </div>
         </div>
       )}
 
-      {/* Add custom animations */}
       <style jsx global>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
         }
         @keyframes scaleIn {
-          from { transform: scale(0.9); opacity: 0; }
+          from { transform: scale(0.95); opacity: 0; }
           to { transform: scale(1); opacity: 1; }
         }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-        .animate-scaleIn {
-          animation: scaleIn 0.3s ease-out;
-        }
+        .animate-slideUp { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .animate-scaleIn { animation: scaleIn 0.2s ease-out; }
       `}</style>
     </div>
   );

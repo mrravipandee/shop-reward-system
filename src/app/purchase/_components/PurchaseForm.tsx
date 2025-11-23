@@ -1,34 +1,27 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import confetti from "canvas-confetti";
 import {
-  IndianRupee, CreditCard, Wallet, Store,
-  Coins, Sparkles, Lock, Scissors
+  IndianRupee,
+  Coins, Scissors,
+  User, CheckCircle2, Eye, EyeOff, Loader2, Lock, X
 } from "lucide-react";
 
-// --- Props Interface ---
-interface PurchaseFormProps {
-  customerPhone: string;
-  isNewCustomer?: boolean;
-  onSubmit: (purchaseData: {
-    amount: number;
-    paymentMode: "cash" | "online";
-    shopCode: string;
-    coinsEarned: number;
-    customerPhone: string;
-    timestamp: string;
-  }) => void;
-  onBack: () => void;
+// --- Type Definitions ---
+interface TransactionSuccessData {
+  success: boolean;
+  newBalance: number;
+  userName: string;
+  error?: string; // Optional error field for API responses
 }
 
-// --- Helper Functions ---
-const generateExpectedCode = () => {
-  const now = new Date();
-  const minutes = now.getMinutes().toString().padStart(2, "0");
-  const hours = now.getHours().toString().padStart(2, "0");
-  return minutes + "70" + hours;
-};
+interface PurchaseFormProps {
+  onComplete: () => void;
+}
 
-const calculateCoins = (purchaseAmount: number) => {
+// --- Helper: Coin Calculation (As provided in input) ---
+const calculateCoins = (purchaseAmount: number): number => {
   if (purchaseAmount < 30) return 0;
   if (purchaseAmount <= 50) return Math.floor(Math.random() * 4) + 1;
   if (purchaseAmount <= 100) return Math.floor(Math.random() * 5) + 4;
@@ -36,38 +29,104 @@ const calculateCoins = (purchaseAmount: number) => {
   if (purchaseAmount <= 500) return Math.floor(Math.random() * 21) + 30;
   if (purchaseAmount <= 1000) return Math.floor(Math.random() * 51) + 50;
 
-  // Make sure high amounts get bigger rewards, not smaller!
-  return Math.floor(purchaseAmount / 20); // E.g. ₹2000 gives 100 coins
+  return Math.floor(purchaseAmount / 20);
 };
 
-export default function PurchaseForm({
-  customerPhone, isNewCustomer = false, onSubmit, onBack
-}: PurchaseFormProps) {
-  const [amount, setAmount] = useState("");
+// --- Helper: Text To Speech ---
+const speakGreeting = (name: string): void => {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+
+  window.speechSynthesis.cancel();
+  const text = `Namaste ${name} ji, aapka swagat hai Ravi Kirana pe. Dhanyawadd.`;
+  const utterance = new SpeechSynthesisUtterance(text);
+
+  const voices: SpeechSynthesisVoice[] = window.speechSynthesis.getVoices();
+  const indianVoice: SpeechSynthesisVoice | undefined = voices.find(v => v.lang.includes('hi') || v.lang.includes('IN'));
+  if (indianVoice) utterance.voice = indianVoice;
+
+  utterance.rate = 0.9;
+  utterance.pitch = 1.1;
+
+  window.speechSynthesis.speak(utterance);
+};
+
+// --- Main Component ---
+export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
+  const router = useRouter();
+
+  // Data States
+  const [phone, setPhone] = useState<string>(""); // Raw digits for API
+  const [formattedPhone, setFormattedPhone] = useState<string>(""); // Formatted display string
+  const [userName, setUserName] = useState<string | null>(null);
+  const [amount, setAmount] = useState<string>("");
   const [paymentMode, setPaymentMode] = useState<"cash" | "online">("cash");
-  const [shopCode, setShopCode] = useState("");
-  const [shopCodeError, setShopCodeError] = useState("");
-  const [calculatedCoins, setCalculatedCoins] = useState(0);
-  const [showScratchCard, setShowScratchCard] = useState(false);
-  const [isScratched, setIsScratched] = useState(false);
-  const [isScratching, setIsScratching] = useState(false);
+  const [shopCode, setShopCode] = useState<string>("");
+
+  // UI States
+  const [isLoading, setIsLoading] = useState<boolean>(false); // For API check
+  const [isProcessing, setIsProcessing] = useState<boolean>(false); // For transaction API
+  const [showShopCode, setShowShopCode] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string>("");
+
+  // Scratch States
+  const [calculatedCoins, setCalculatedCoins] = useState<number>(0);
+  const [showScratchCard, setShowScratchCard] = useState<boolean>(false);
+  const [isScratched, setIsScratched] = useState<boolean>(false);
+  const [isScratching, setIsScratching] = useState<boolean>(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // --- Validate Shop Code ---
-  const validateShopCode = (code: string) => {
-    if (!code || code.length !== 6) return "Shop code is required";
-    if (code !== generateExpectedCode()) return "Invalid shop code";
-    return "";
+
+  // --- HANDLE PHONE ENTRY & API CHECK (The "Namaste" logic) ---
+  const handlePhoneChange = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    // 1. Get value and remove all non-digits
+    const inputValue: string = e.target.value.replace(/\D/g, "");
+    const rawDigits: string = inputValue.slice(0, 10);
+
+    // 2. Format the digits for display: "+91 98765 43210"
+    let formatted: string = " ";
+    if (rawDigits.length > 5) {
+      formatted += rawDigits.slice(0, 5) + " " + rawDigits.slice(5);
+    } else {
+      formatted += rawDigits;
+    }
+
+    // 3. Update both raw and formatted states
+    setPhone(rawDigits); // Raw number for API
+    setFormattedPhone(formatted); // Formatted string for display
+    setUserName(null);
+    setErrorMsg("");
+
+    // 4. Trigger API check only when 10 digits are complete
+    if (rawDigits.length === 10) {
+      setIsLoading(true);
+      try {
+        const res: Response = await fetch("/api/user/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: rawDigits }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const name: string = data.user.name || "Customer";
+          setUserName(name);
+          speakGreeting(name);
+        } else if (res.status === 404) {
+          router.push(`/register?phone=${rawDigits}`);
+        } else {
+          setErrorMsg("API Error during user check.");
+        }
+      } catch (err) {
+        setErrorMsg("Network error. Try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
-  const handleShopCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setShopCode(value);
-    setShopCodeError(validateShopCode(value));
-  };
-
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+  // --- HANDLE AMOUNT & COIN CALCULATION ---
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const value: string = e.target.value;
     setAmount(value);
     if (value && !isNaN(Number(value))) {
       setCalculatedCoins(calculateCoins(Number(value)));
@@ -76,329 +135,333 @@ export default function PurchaseForm({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // --- SUBMIT TO SCRATCH ---
+  const handlePreSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
-    // Validate before showing scratch card
-    const codeError = validateShopCode(shopCode);
-    setShopCodeError(codeError);
-    if (!amount || Number(amount) < 1 || codeError) return;
-    setIsScratched(false); // Reset on new card
+    if (!userName || !amount || !shopCode || Number(amount) <= 0) {
+      setErrorMsg("Please fill all required fields correctly.");
+      return;
+    }
+    setErrorMsg("");
     setShowScratchCard(true);
   };
 
-  const processPurchaseAfterScratch = () => {
-    const purchaseData = {
-      amount: Number(amount),
-      paymentMode,
-      shopCode,
-      coinsEarned: calculatedCoins,
-      customerPhone,
-      timestamp: new Date().toISOString(),
-    };
-    onSubmit(purchaseData);
+  // --- FINAL API SUBMISSION (After Scratch) ---
+  const processTransaction = async (): Promise<void> => {
+    setIsProcessing(true);
+    try {
+      const res: Response = await fetch("/api/transaction/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerPhone: phone,
+          amount: Number(amount),
+          coinsEarned: calculatedCoins,
+          paymentMode,
+          shopCode
+        }),
+      });
+
+      const data: TransactionSuccessData = await res.json();
+
+      if (res.ok) {
+        confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+
+        // Redirect to home page after 10 seconds total
+        setTimeout(() => {
+          router.push('/');
+        }, 10000);
+
+        // Call parent completion function immediately (optional)
+        setTimeout(() => onComplete(), 3000);
+
+      } else {
+        alert(data.error || "Transaction failed. Please check Shop Code.");
+        setShowScratchCard(false);
+        setIsScratched(false);
+      }
+    } catch (error) {
+      alert("A critical error occurred during transaction.");
+      setShowScratchCard(false);
+      setIsScratched(false);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  // --- SCRATCH CARD LOGIC: SUPPORTS MOUSE AND TOUCH ---
-  const initializeScratchCard = () => {
+  // --- SCRATCH CARD CANVAS LOGIC ---
+  const initCanvas = (): void => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    // Ensure the canvas size matches its display size
     canvas.width = 300;
     canvas.height = 200;
-    const ctx = canvas.getContext("2d");
+    const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Fill base with "scratchable" gray
-    ctx.fillStyle = "#c0c0c0";
+    ctx.fillStyle = "#A9A9A9";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Texture add
-    ctx.fillStyle = "#a0a0a0";
-    for (let i = 0; i < canvas.width; i += 10) {
-      for (let j = 0; j < canvas.height; j += 10) {
-        if ((i + j) % 20 === 0) {
-          ctx.fillRect(i, j, 5, 5);
-        }
-      }
-    }
-    // Scratch message
-    ctx.fillStyle = "#666";
-    ctx.font = "bold 16px Arial";
+
+    ctx.fillStyle = "#555";
+    ctx.font = "bold 20px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("SCRATCH HERE", canvas.width / 2, canvas.height / 2);
+    ctx.fillText("SCRATCH HERE", 150, 100);
   };
 
-  // --- SCRATCH HELPER ---
-  const scratch = (xy: { x: number; y: number }) => {
+  const scratch = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>): void => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    if (!canvas || isScratched) return;
+    const rect: DOMRect = canvas.getBoundingClientRect();
+
+    let clientX: number;
+    let clientY: number;
+
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const x: number = clientX - rect.left;
+    const y: number = clientY - rect.top;
+
+    const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
     if (!ctx) return;
+
     ctx.globalCompositeOperation = "destination-out";
     ctx.beginPath();
-    ctx.arc(xy.x, xy.y, 20, 0, Math.PI * 2);
+    ctx.arc(x, y, 25, 0, Math.PI * 2);
     ctx.fill();
   };
 
-  const getXY = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    let x, y;
-    if ('touches' in e && e.touches.length) {
-      x = e.touches[0].clientX - rect.left;
-      y = e.touches[0].clientY - rect.top;
-    } else {
-      x = (e as React.MouseEvent<HTMLCanvasElement>).clientX - rect.left;
-      y = (e as React.MouseEvent<HTMLCanvasElement>).clientY - rect.top;
-    }
-    return { x, y };
-  };
-
-  // --- SCRATCH CARD EVENTS ---
-  const handleScratchStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    setIsScratching(true);
-    scratch(getXY(e));
-  };
-  const handleScratchMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isScratching) return;
-    scratch(getXY(e));
-  };
-  const handleScratchEnd = () => {
+  const checkReveal = (): void => {
     setIsScratching(false);
-    // Check how much scratched
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    if (!canvas || isScratched) return;
+    const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
+
     if (!ctx) return;
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const pixels = imageData.data;
-    let transparentPixels = 0;
-    for (let i = 3; i < pixels.length; i += 4) {
-      if (pixels[i] === 0) transparentPixels++;
+    const imageData: ImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let transparent: number = 0;
+
+    for (let i = 3; i < imageData.data.length; i += 4) {
+      if (imageData.data[i] === 0) transparent++;
     }
-    const transparencyRatio = transparentPixels / (pixels.length / 4);
-    if (transparencyRatio > 0.3 && !isScratched) {
+
+    if (transparent / (imageData.data.length / 4) > 0.4) {
       setIsScratched(true);
-      setTimeout(processPurchaseAfterScratch, 1500);
+      processTransaction();
     }
   };
-  // --- INITIALIZE CARD WHEN SHOWN ---
-  useEffect(() => {
-    if (showScratchCard) {
-      setTimeout(initializeScratchCard, 100);
-    }
-  }, [showScratchCard, calculatedCoins]);
 
-  // --- RENDER ---
+  const handleCancelScratch = (): void => {
+    if (isProcessing) return;
+    setShowScratchCard(false);
+    setIsScratched(false);
+  }
+
+  useEffect(() => {
+    if (showScratchCard) setTimeout(initCanvas, 100);
+  }, [showScratchCard]);
+
+  // --- RENDER: SCRATCH CARD OVERLAY ---
   if (showScratchCard) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full">
-          <div className="text-center space-y-6">
-            {/* Header */}
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
-                <Scissors className="w-8 h-8 text-primary" />
-              </div>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-secondary mb-2">
-              Scratch & Reveal!
-            </h1>
-            <p className="text-secondary/80 text-sm">
-              Scratch the card to reveal your coins reward
-            </p>
-            {/* SCRATCH CARD UI */}
-            <div className="relative">
-              <div className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl p-8 aspect-video flex items-center justify-center relative overflow-hidden">
-                {/* Prize BG */}
-                <div className="text-center text-white">
-                  <div className="flex items-center justify-center gap-3 mb-3">
-                    <Coins className="w-8 h-8 text-yellow-200" />
-                    <span className="text-3xl font-bold">{calculatedCoins}</span>
-                  </div>
-                  <p className="text-yellow-100 text-lg font-semibold">Coins Earned!</p>
-                  <p className="text-yellow-200 text-sm mt-2">Purchase: ₹{amount}</p>
+      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+        <div className="bg-white rounded-3xl p-6 w-full max-w-sm text-center relative overflow-hidden">
+
+          {/* Cancel Button */}
+          <button
+            onClick={handleCancelScratch}
+            disabled={isScratched || isProcessing}
+            className="absolute top-3 right-3 p-2 text-secondary/50 hover:text-red-600 transition disabled:opacity-50"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <h2 className="text-2xl font-bold text-secondary mb-2">Scratch To Claim!</h2>
+          <p className="text-sm text-secondary/60 mb-6">Your reward is ready.</p>
+
+          <div className="relative w-full max-w-[300px] h-[200px] mx-auto rounded-xl overflow-hidden shadow-2xl ring-4 ring-primary/20">
+
+            {/* The Prize (Behind Canvas) */}
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-300 to-orange-500 flex flex-col items-center justify-center">
+              {isProcessing ? (
+                <div className="flex flex-col items-center text-white">
+                  <Loader2 className="w-10 h-10 animate-spin mb-2" />
+                  <span className="font-bold">Crediting...</span>
                 </div>
-                {/* Scratch Layer */}
-                <canvas
-                  ref={canvasRef}
-                  width={300}
-                  height={200}
-                  className="absolute inset-0 w-full h-full cursor-crosshair rounded-2xl"
-                  style={{ touchAction: "none" }}
-                  onMouseDown={handleScratchStart}
-                  onMouseMove={handleScratchMove}
-                  onMouseUp={handleScratchEnd}
-                  onMouseLeave={handleScratchEnd}
-                  onTouchStart={handleScratchStart}
-                  onTouchMove={handleScratchMove}
-                  onTouchEnd={handleScratchEnd}
-                />
-              </div>
+              ) : (
+                <>
+                  <Coins className="w-14 h-14 text-white drop-shadow-md mb-2" />
+                  <div className="text-5xl font-black text-white drop-shadow-md">{calculatedCoins}</div>
+                  <div className="text-white font-bold text-lg mt-1">COINS</div>
+                </>
+              )}
             </div>
-            {/* Instructions */}
-            <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
-              <div className="flex items-center gap-2 justify-center mb-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <span className="font-semibold text-secondary text-sm">How to Play</span>
-              </div>
-              <p className="text-secondary/60 text-xs text-center">
-                Click and drag (or use your finger) to scratch the silver layer. Reveal 30% to claim your coins!
-              </p>
-            </div>
-            {/* Loading State */}
-            {isScratched && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                <div className="flex items-center gap-2 justify-center">
-                  <Sparkles className="w-5 h-5 text-green-600 animate-pulse" />
-                  <span className="font-semibold text-green-700">Coins added to your account!</span>
-                </div>
-              </div>
+
+            {/* The Scratch Layer */}
+            {!isScratched && (
+              <canvas
+                ref={canvasRef}
+                className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
+                onMouseDown={(e) => { setIsScratching(true); scratch(e); }}
+                onMouseMove={(e) => isScratching && scratch(e)}
+                onMouseUp={checkReveal}
+                onMouseLeave={checkReveal}
+                onTouchStart={(e) => { setIsScratching(true); scratch(e); }}
+                onTouchMove={(e) => isScratching && scratch(e)}
+                onTouchEnd={checkReveal}
+              />
             )}
           </div>
+
+          {isScratched && !isProcessing && (
+            <div className="mt-6 text-green-600 font-bold flex items-center justify-center gap-2 animate-pulse">
+              <CheckCircle2 className="w-6 h-6" />
+              <span>Coins Added! Redirecting in 10s...</span>
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
-  // --- STANDARD FORM ---
+  // --- RENDER: MAIN FORM ---
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full">
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
-                <Wallet className="w-8 h-8 text-primary" />
-              </div>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-secondary mb-2">
-              {isNewCustomer ? "Welcome!" : "Process Purchase"}
-            </h1>
-            <p className="text-secondary/80 text-sm">
-              Customer: {customerPhone}
-            </p>
+    <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-secondary/10 overflow-hidden relative">
+
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-purple-500" />
+
+      <div className="p-6 sm:p-8 space-y-6">
+
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-secondary">New Purchase</h1>
+          <p className="text-xs text-secondary/50 uppercase tracking-widest mt-1">Coin Terminal</p>
+        </div>
+        
+        {/* 1. Phone Input & User Check */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-secondary ml-1">CUSTOMER MOBILE</label>
+          <div className="relative group">
+            {/* Fixed +91 prefix for visual clarity */}
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-secondary/70 transition-colors pointer-events-none">
+              +91
+            </span>
+
+            <input
+              type="tel"
+              value={formattedPhone}
+              onChange={handlePhoneChange}
+              maxLength={16}
+              placeholder="98765 43210"
+              className="w-full pl-16 pr-12 py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-lg text-secondary tracking-wider focus:ring-2 focus:ring-primary/50 focus:bg-white transition-all outline-none"
+            />
+            {isLoading && (
+              <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary animate-spin" />
+            )}
           </div>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Amount Input */}
-            <div>
-              <label className="block text-secondary font-medium mb-2">
-                Purchase Amount (₹)
-              </label>
-              <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 text-secondary/40 w-5 h-5" />
-                <input
-                  type="number"
-                  value={amount}
-                  onChange={handleAmountChange}
-                  placeholder="Enter amount"
-                  className="w-full pl-10 pr-4 py-3 border border-secondary/20 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all duration-200"
-                  min="1"
-                  required
-                />
+
+          {/* Found User Badge */}
+          {userName && (
+            <div className="animate-in slide-in-from-top-2 duration-300">
+              <div className="bg-green-50 border border-green-100 p-3 rounded-xl flex items-center gap-3">
+                <div className="bg-green-100 p-2 rounded-full">
+                  <User className="w-4 h-4 text-green-700" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-green-600 font-bold uppercase">Verified</p>
+                  <p className="text-sm font-bold text-green-800">{userName}</p>
+                </div>
+                <CheckCircle2 className="w-5 h-5 text-green-600 ml-auto" />
               </div>
             </div>
+          )}
+          {errorMsg && <p className="text-red-500 text-xs ml-1">{errorMsg}</p>}
+        </div>
+
+        {/* 2. Transaction Details (Only if user found) */}
+        {userName && (
+          <form onSubmit={handlePreSubmit} className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Amount */}
+              <div className="space-y-2 col-span-2">
+                <label className="text-xs font-bold text-secondary ml-1">AMOUNT (₹)</label>
+                <div className="relative">
+                  <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary/30" />
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={handleAmountChange}
+                    className="w-full pl-9 pr-2 py-3 bg-gray-50 rounded-xl font-bold text-lg focus:ring-2 focus:ring-primary/50 outline-none"
+                    placeholder="0"
+                    min="1"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Coins Preview - Removed as requested */}
+              {/* <div className="space-y-2">...</div> */}
+            </div>
+
             {/* Payment Mode */}
-            <div>
-              <label className="block text-secondary font-medium mb-3">
-                Payment Mode
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMode("cash")}
-                  className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl border transition-all duration-200 ${
-                    paymentMode === "cash"
-                      ? "bg-primary text-white border-primary"
-                      : "bg-white text-secondary border-secondary/20 hover:border-primary"
-                  }`}
-                >
-                  <Wallet className="w-4 h-4" />
-                  <span>Cash</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMode("online")}
-                  className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl border transition-all duration-200 ${
-                    paymentMode === "online"
-                      ? "bg-primary text-white border-primary"
-                      : "bg-white text-secondary border-secondary/20 hover:border-primary"
-                  }`}
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Online</span>
-                </button>
-              </div>
-            </div>
-            {/* Shop Code Input */}
-            <div>
-              <label className="block text-secondary font-medium mb-2">
-                Shop Security Code
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-secondary/40 w-5 h-5" />
-                <input
-                  type="text"
-                  value={shopCode}
-                  onChange={handleShopCodeChange}
-                  placeholder="Enter 6-digit code"
-                  maxLength={6}
-                  className="w-full pl-10 pr-4 py-3 border border-secondary/20 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all duration-200 font-mono text-center text-lg tracking-wider"
-                  required
-                />
-              </div>
-              {shopCodeError && (
-                <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
-                  <Lock className="w-3 h-3" />
-                  {shopCodeError}
-                </p>
-              )}
-              {/* Positive Feedback */}
-              {shopCode && !shopCodeError && shopCode.length === 6 && (
-                <p className="text-green-500 text-xs mt-2 flex items-center gap-1">
-                  <Store className="w-3 h-3" />
-                  Valid shop code - Ready to process
-                </p>
-              )}
-            </div>
-            {/* Action Buttons */}
-            <div className="space-y-3">
+            <div className="p-1 bg-gray-100 rounded-xl grid grid-cols-2 gap-1">
               <button
-                type="submit"
-                disabled={
-                  !amount ||
-                  Number(amount) < 1 ||
-                  !shopCode ||
-                  !!shopCodeError
-                }
-                className="w-full bg-primary text-white py-4 rounded-xl font-semibold hover:bg-primary/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                type="button"
+                onClick={() => setPaymentMode("cash")}
+                className={`py-2 rounded-lg text-sm font-bold transition-all ${paymentMode === "cash" ? "bg-white shadow-sm text-secondary" : "text-secondary/50 hover:text-secondary"
+                  }`}
               >
-                <Scissors className="w-5 h-5" />
-                Process & Scratch to Reveal Coins
+                Cash
               </button>
               <button
                 type="button"
-                onClick={onBack}
-                className="w-full border border-secondary/20 text-secondary py-3 rounded-xl font-medium hover:bg-secondary/5 transition-all duration-300"
+                onClick={() => setPaymentMode("online")}
+                className={`py-2 rounded-lg text-sm font-bold transition-all ${paymentMode === "online" ? "bg-white shadow-sm text-secondary" : "text-secondary/50 hover:text-secondary"
+                  }`}
               >
-                Back to Scanner
+                Online
               </button>
             </div>
-          </form>
-          {/* Instructions */}
-          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <span className="font-semibold text-secondary text-sm">How it works</span>
+
+            {/* Shop Code */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-secondary ml-1">SECURITY CODE</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary/30" />
+                <input
+                  type={showShopCode ? "text" : "password"}
+                  value={shopCode}
+                  onChange={(e) => setShopCode(e.target.value)}
+                  maxLength={6}
+                  placeholder="------"
+                  className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-100 rounded-xl font-mono text-center text-lg tracking-[0.5em] focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowShopCode(!showShopCode)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-secondary/40 hover:text-primary"
+                >
+                  {showShopCode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
-            <ul className="text-secondary/60 text-xs space-y-1">
-              <li>• Enter purchase amount and shop security code</li>
-              <li>• Scratch card will reveal your coins reward</li>
-              <li>• Coins are added after scratching the card</li>
-            </ul>
-          </div>
-        </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={!amount || !shopCode || Number(amount) <= 0}
+              className="w-full bg-primary text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+            >
+              <Scissors className="w-5 h-5" />
+              <span>Process Purchase</span>
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
