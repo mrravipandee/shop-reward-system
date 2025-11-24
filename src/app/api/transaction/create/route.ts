@@ -1,20 +1,41 @@
 import { NextResponse } from "next/server";
-import {dbConnect} from "@/lib/dbConnect";
+import { dbConnect } from "@/lib/dbConnect";
 import User from "@/models/User";
 import Transaction from "@/models/Transaction";
 
-// Shop Code Validator (MM + '70' + HH)
-const validateShopCode = (code: string) => {
+// --- Shop Code Validator (MM + '70' + HH) ---
+/**
+ * Validates the shop code against the current time in Asia/Kolkata (IST).
+ * Logic: MM + '70' + HH (24-hour format, with leading zeros).
+ * @param {string} code - The submitted shop code.
+ * @returns {boolean} True if the code matches the IST time.
+ */
+// --- MODIFIED validateShopCode function ---
+const validateShopCode = (code: string): boolean => {
+  const timeZone = "Asia/Kolkata";
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    hour: '2-digit', minute: '2-digit', hour12: false, timeZone
+  };
+  
   const now = new Date();
-  // Ensure we use IST time for calculation if server is UTC
-  // const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  const formatter = new Intl.DateTimeFormat('en-US', dateOptions);
   
-  const minutes = now.getMinutes().toString().padStart(2, "0");
-  const hours = now.getHours().toString().padStart(2, "0");
-  const expected = minutes + "70" + hours;
+  // 1. Calculate Expected Code (Current Minute)
+  const [currentHours, currentMinutes] = formatter.format(now).split(':');
+  const expectedCurrent = `${currentMinutes}70${currentHours}`;
   
-  return code === expected;
+  // 2. Calculate Previous Minute's Code
+  // Create a Date object for 60 seconds ago
+  const oneMinuteAgo = new Date(now.getTime() - 60000); 
+  const [prevHours, prevMinutes] = formatter.format(oneMinuteAgo).split(':');
+  const expectedPrevious = `${prevMinutes}70${prevHours}`;
+  
+  // 3. Log and Validate
+  console.log(`[ShopCode] Sub: ${code}, Expected: [${expectedPrevious}, ${expectedCurrent}]`);
+  
+  return code === expectedCurrent || code === expectedPrevious;
 };
+
 
 export async function POST(req: Request) {
   try {
@@ -24,7 +45,8 @@ export async function POST(req: Request) {
 
     // 1. Validate Shop Code
     if (!validateShopCode(shopCode)) {
-      return NextResponse.json({ error: "Invalid Security Code" }, { status: 403 });
+      // NOTE: Using 401 (Unauthorized) is often better than 403 (Forbidden) for authentication issues.
+      return NextResponse.json({ error: "Invalid Security Code" }, { status: 401 });
     }
 
     // 2. Find User
@@ -33,8 +55,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // 3. Update User Stats
-    // Using $inc is atomic and safer
+    // 3. Update User Stats (Atomic Update)
     const updatedUser = await User.findByIdAndUpdate(
       user._id,
       { 
@@ -45,7 +66,7 @@ export async function POST(req: Request) {
           monthlySpent: Number(amount)
         } 
       },
-      { new: true } // Return updated doc
+      { new: true } // Return the updated document
     );
 
     // 4. Record Transaction
@@ -54,9 +75,10 @@ export async function POST(req: Request) {
       amount: Number(amount),
       coinsEarned: Number(coinsEarned),
       paymentMode,
-      shopCode
+      shopCode // The submitted code is stored for audit (as per your schema)
     });
 
+    // 5. Success Response
     return NextResponse.json({ 
       success: true, 
       newBalance: updatedUser.coins,
