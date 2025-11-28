@@ -12,6 +12,7 @@ export default function Navbar() {
     { href: "/", label: "Home" },
     { href: "/#offers", label: "Offers" },
     { href: "/coins", label: "Coins" },
+    { href: "/purchase", label: "Rewards" },
     { href: "/winners", label: "Winners" },
     { href: "/#contact", label: "Contact" },
   ];
@@ -49,7 +50,7 @@ export default function Navbar() {
             href="#enquiry"
             className="bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors duration-300"
           >
-            Enquiry
+            Shop
           </a>
         </div>
 
@@ -86,7 +87,7 @@ export default function Navbar() {
                 className="block bg-primary text-white text-center py-3 px-4 rounded-lg font-medium hover:bg-primary/90 transition-colors duration-300"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Make Enquiry
+                Shop
               </a>
             </div>
           </div>

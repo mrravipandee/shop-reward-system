@@ -33,20 +33,45 @@ export default function Footer() {
     }
   ];
 
-  // --- Utility Function for Store Status ---
+  // --- Utility Function for Store Status (FIXED for Timezone) ---
   const getStoreStatus = () => {
+    // Define the store's timezone (India Standard Time)
+    const targetTimezone = 'Asia/Kolkata';
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
+
+    // Use Intl.DateTimeFormat to get the current hour and minute in the target timezone
+    // hourCycle: 'h23' ensures the hour is 0-23
+    const options: Intl.DateTimeFormatOptions = {
+        hour: 'numeric',
+        minute: 'numeric',
+        hourCycle: 'h23', 
+        timeZone: targetTimezone
+    };
+    
+    // Extract hour and minute components
+    const formatter = new Intl.DateTimeFormat('en-US', options);
+    const parts = formatter.formatToParts(now);
+    
+    let currentHour = 0;
+    let currentMinute = 0;
+    
+    for (const part of parts) {
+        if (part.type === 'hour') {
+            currentHour = parseInt(part.value, 10);
+        } else if (part.type === 'minute') {
+            currentMinute = parseInt(part.value, 10);
+        }
+    }
+    
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
     // Slot 1: 7:00 AM (420 min) to 2:00 PM (840 min)
-    const slot1Start = 7 * 60; // 420
-    const slot1End = 14 * 60;  // 840
+    const slot1Start = 7 * 60;   // 420
+    const slot1End = 14 * 60;    // 840
 
     // Slot 2: 4:00 PM (960 min) to 10:00 PM (1320 min)
-    const slot2Start = 16 * 60; // 960
-    const slot2End = 22 * 60;  // 1320
+    const slot2Start = 16 * 60;  // 960
+    const slot2End = 22 * 60;   // 1320
 
     const isOpen = 
       (currentTimeInMinutes >= slot1Start && currentTimeInMinutes < slot1End) ||
@@ -199,17 +224,6 @@ export default function Footer() {
             </div>
 
           </div>
-        </div>
-
-        {/* Floating CTA for Mobile (Fixed styling with Indigo) */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white p-4 border-t border-gray-200 shadow-2xl">
-          <a
-            href="tel:+917058548204"
-            className={`${PRIMARY_BG_CLASSES} text-white px-6 py-3 rounded-xl font-bold shadow-xl hover:bg-indigo-700 transition-all duration-300 flex items-center justify-center gap-3 text-base`}
-          >
-            <Phone className="w-5 h-5" />
-            Call Now for Delivery
-          </a>
         </div>
       </div>
     </footer>
