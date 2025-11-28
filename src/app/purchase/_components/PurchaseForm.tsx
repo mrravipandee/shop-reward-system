@@ -1,6 +1,7 @@
-"use client";
+"use client"; // Assuming this component is client-side
+
 import { useState, useEffect, useRef } from "react";
-// Removed: import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation"; // UNCOMMENTED AND NOW USED
 import confetti from "canvas-confetti";
 import {
   IndianRupee,
@@ -17,10 +18,9 @@ interface TransactionSuccessData {
 }
 
 interface PurchaseFormProps {
-  // UPDATED: onComplete now expects the destination path (e.g., '/coins', '/home')
+  // UPDATED: onComplete is still defined, but we will use useRouter internally for navigation
   onComplete: (destination: string) => void;
 }
-
 
 // --- Helper: Coin Calculation ---
 const calculateCoins = (purchaseAmount: number): number => {
@@ -54,10 +54,10 @@ const calculateCoins = (purchaseAmount: number): number => {
   return Math.floor(purchaseAmount / 20);
 };
 
-
 // --- Main Component ---
 export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
-  // Removed: const router = useRouter();
+  // UNCOMMENTED: Use useRouter for direct navigation
+  const router = useRouter();
 
   // Data States
   const [phone, setPhone] = useState<string>(""); // Raw digits for API
@@ -135,7 +135,6 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
 
     window.speechSynthesis.speak(utterance);
   };
-  // ---------------------------------------------
 
 
   // --- HANDLE PHONE ENTRY & API CHECK (The "Namaste" logic) ---
@@ -162,6 +161,7 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
     if (rawDigits.length === 10) {
       setIsLoading(true);
       try {
+        // Mock API Call - Replace with actual fetch
         const res: Response = await fetch("/api/user/check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -213,6 +213,7 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
   const processTransaction = async (): Promise<void> => {
     setIsProcessing(true);
     try {
+      // Mock API Call - Replace with actual fetch
       const res: Response = await fetch("/api/transaction/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -228,13 +229,22 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
       const data: TransactionSuccessData = await res.json();
 
       if (res.ok) {
-        confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+        // 1. Trigger celebration only if coins were earned
+        if (calculatedCoins > 0) {
+          confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+        }
 
-        // DETERMINE DESTINATION: If user verified, go to /coins, otherwise /home.
-        const destination = userName ? '/coins' : '/home';
+        // 2. DETERMINE DESTINATION: If user verified (userName is set), go to /coins, otherwise / (home).
+        const destination = userName ? '/coins' : '/';
 
-        // Call parent completion function with the destination path
-        setTimeout(() => onComplete(destination), 3000);
+        // 3. Wait 2 seconds for the user to see the success message/confetti, then navigate
+        setTimeout(() => {
+          // Using useRouter directly to handle navigation
+          router.push(destination);
+
+          // The onComplete prop is now redundant but kept as per interface:
+          // onComplete(destination); 
+        }, 4000);
 
       } else {
         console.error(data.error || "Transaction failed. Please check Shop Code.");
@@ -252,7 +262,7 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
     }
   };
 
-  // --- SCRATCH CARD CANVAS LOGIC ---
+  // --- SCRATCH CARD CANVAS LOGIC (Omitted for brevity, assumed unchanged) ---
   const initCanvas = (): void => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -314,7 +324,7 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
 
     if (transparent / (imageData.data.length / 4) > 0.4) {
       setIsScratched(true);
-      processTransaction();
+      processTransaction(); // Trigger API call and confetti
     }
   };
 
@@ -328,41 +338,97 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
     if (showScratchCard) setTimeout(initCanvas, 100);
   }, [showScratchCard]);
 
+
   // --- RENDER: SCRATCH CARD OVERLAY ---
   if (showScratchCard) {
+
+    // --- NEW LOGIC FOR PRIZE CONTENT ---
+    const isZeroCoins = calculatedCoins === 0;
+
+    const prizeContent = isScratched && !isProcessing ? (
+      // State 3: Success/Navigation Pending (Confetti runs, waiting for redirect)
+      <div className="flex flex-col items-center text-white p-4 animate-in fade-in duration-500">
+
+        {isZeroCoins ? (
+          // New: Zero Coins Message
+          <div className="text-center">
+            <X className="w-10 h-10 mb-3 text-red-300 drop-shadow-lg" />
+            <span className="text-3xl font-black uppercase tracking-wide">
+              SORRY!
+            </span>
+            <div className="text-5xl font-black mt-2 drop-shadow-lg">
+              {calculatedCoins}
+            </div>
+            <div className="font-bold text-xl mt-1">COINS EARNED</div>
+            <p className="mt-4 text-sm font-semibold text-red-200">
+              Next time shop for ₹10 or more to start earning! Redirecting...
+            </p>
+          </div>
+        ) : (
+          // Earned Coins Message
+          <div className="text-center">
+            <CheckCircle2 className="w-10 h-10 mb-3 text-white drop-shadow-lg" />
+            <span className="text-xl font-bold uppercase tracking-wide">
+              Transaction Complete!
+            </span>
+            <div className="text-6xl font-black mt-2 drop-shadow-lg">
+              {calculatedCoins}
+            </div>
+            <div className="font-bold text-2xl mt-1">COINS EARNED</div>
+            <p className="mt-4 text-sm font-semibold text-indigo-100">
+              Thank you for shopping! Redirecting now...
+            </p>
+          </div>
+        )}
+      </div>
+    ) : isProcessing ? (
+      // State 2: Processing API
+      <div className="flex flex-col items-center text-white p-4">
+        {/* Loader2 spins in a circle via animate-spin */}
+        <Loader2 className="w-10 h-10 animate-spin mb-2" />
+        <span className="font-bold text-lg">Crediting Coins...</span>
+      </div>
+    ) : (
+      // State 1: Before Scratch / Hidden Prize
+      <div className="flex flex-col items-center text-white p-4">
+        <Coins className="w-14 h-14 text-white drop-shadow-md mb-2" />
+        <div className="text-5xl font-black drop-shadow-md">{calculatedCoins}</div>
+        <div className="text-white font-bold text-lg mt-1">COINS</div>
+      </div>
+    );
+
+
     return (
       <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-        <div className="bg-white rounded-3xl p-6 w-full max-w-sm text-center relative overflow-hidden">
+        <div className="bg-white rounded-3xl p-6 w-full max-w-sm text-center relative overflow-hidden shadow-2xl">
 
           {/* Cancel Button */}
           <button
             onClick={handleCancelScratch}
-            disabled={isScratched || isProcessing}
+            disabled={isScratched} // Cannot cancel once scratched, only on error
             className="absolute top-3 right-3 p-2 text-gray-400 hover:text-red-600 transition disabled:opacity-50"
           >
             <X className="w-5 h-5" />
           </button>
 
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Scratch To Claim!</h2>
-          <p className="text-sm text-gray-500 mb-6">Your reward is ready.</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            {isScratched ? (isZeroCoins ? "Better Luck Next Time!" : "Congratulations!") : "Scratch To Claim!"}
+          </h2>
+          <p className="text-sm text-gray-500 mb-6">
+            {isScratched ? "Your purchase is recorded." : "Reveal your reward below."}
+          </p>
 
-          <div className="relative w-full max-w-[300px] h-[200px] mx-auto rounded-xl overflow-hidden shadow-2xl ring-4 ring-indigo-500/20">
+          <div className="relative w-full max-w-[300px] h-[200px] mx-auto rounded-xl overflow-hidden shadow-2xl ring-4 ring-indigo-500/50">
 
-            {/* The Prize (Behind Canvas) */}
-            <div className="absolute inset-0 bg-gradient-to-br from-yellow-300 to-orange-500 flex flex-col items-center justify-center">
-              {isProcessing ? (
-                <div className="flex flex-col items-center text-white">
-                  {/* Loader spins in a circle via animate-spin */}
-                  <Loader2 className="w-10 h-10 animate-spin mb-2" />
-                  <span className="font-bold">Crediting...</span>
-                </div>
-              ) : (
-                <>
-                  <Coins className="w-14 h-14 text-white drop-shadow-md mb-2" />
-                  <div className="text-5xl font-black text-white drop-shadow-md">{calculatedCoins}</div>
-                  <div className="text-white font-bold text-lg mt-1">COINS</div>
-                </>
-              )}
+            {/* The Prize (Behind Canvas) - Handles Success/Processing/Zero Coin states */}
+            {/* Conditional background based on outcome */}
+            <div className={`absolute inset-0 flex flex-col items-center justify-center 
+                ${isScratched && isZeroCoins
+                ? 'bg-gradient-to-br from-red-500 to-red-700'
+                : 'bg-gradient-to-br from-yellow-300 to-orange-500'
+              }`}
+            >
+              {prizeContent}
             </div>
 
             {/* The Scratch Layer */}
@@ -381,18 +447,12 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
             )}
           </div>
 
-          {isScratched && !isProcessing && (
-            <div className="mt-6 text-green-600 font-bold flex items-center justify-center gap-2 animate-pulse">
-              <CheckCircle2 className="w-6 h-6" />
-              <span>Coins Added!</span>
-            </div>
-          )}
         </div>
       </div>
     );
   }
 
-  // --- RENDER: MAIN FORM ---
+  // --- RENDER: MAIN FORM (Omitted for brevity, assumed unchanged) ---
   return (
     <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden relative">
 
@@ -424,7 +484,10 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
             />
             {isLoading && (
               // This Loader2 icon rotates in a circle due to animate-spin
-              <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-600 animate-spin" />
+              // <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-600 animate-spin" />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                <span className="loader-circle"></span>
+              </span>
             )}
           </div>
 
@@ -467,9 +530,6 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
                   />
                 </div>
               </div>
-
-              {/* Coins Preview - Removed as requested */}
-              {/* <div className="space-y-2">...</div> */}
             </div>
 
             {/* Payment Mode */}
