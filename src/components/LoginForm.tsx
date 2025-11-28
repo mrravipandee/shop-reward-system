@@ -3,34 +3,44 @@
 import { useState } from "react";
 import {
   Phone,
-  Calendar,
   Lock,
   Eye,
   EyeOff,
   ArrowRight,
   LogIn
 } from "lucide-react";
-import { useUserStore } from "@/store/userStore";
 
-// 1. Define strict types for your form state
+interface User {
+  name: string;
+  phone: string;
+  coins: number;
+  coinValue: number; 
+  photo: string;
+  memberSince: string;
+}
+
+const useUserStore = () => ({
+  setUser: (user: User) => {
+    // console.log("Mock setUser called with:", user.name);
+  }
+});
+
 interface LoginFormState {
   phone: string;
-  dob: string;
   password: string;
 }
 
 export default function LoginForm() {
-  // State management
+  // State management (DOB removed)
   const [form, setForm] = useState<LoginFormState>({
     phone: "",
-    dob: "",
     password: "",
   });
 
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const { setUser } = useUserStore();
+  const { setUser } = useUserStore(); // Using the (now internal/mocked) hook
 
   // Function to format the 10-digit number into 5-5 chunks for display
   const formatPhoneNumber = (number: string): string => {
@@ -38,11 +48,9 @@ export default function LoginForm() {
     return `${number.slice(0, 5)} ${number.slice(5, 10)}`;
   };
 
-  // 2. Proper Type for Input Change Events
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    // Specific logic for phone to allow only numbers and restrict length
     if (name === "phone") {
       const numericValue = value.replace(/\D/g, '');
       if (numericValue.length <= 10) {
@@ -57,15 +65,15 @@ export default function LoginForm() {
 
   // 3. Updated Form Submission Logic to call the backend endpoint
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Prevent page reload
+    e.preventDefault(); 
     setError("");
     setIsLoading(true);
 
-    const { phone, dob, password } = form;
+    const { phone, password } = form;
 
-    // Client-side Validation Logic
-    if (!phone || !dob || !password) {
-      setError("Please fill in all fields");
+    // Basic Validation
+    if (!phone || !password) {
+      setError("Please fill in both Mobile Number and Password");
       setIsLoading(false);
       return;
     }
@@ -75,34 +83,35 @@ export default function LoginForm() {
       setIsLoading(false);
       return;
     }
-    // End Validation
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/login", { 
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        // Send the form data as a JSON string
-        body: JSON.stringify({ phone, dob, password }),
+        // Send only phone and password
+        body: JSON.stringify({ phone, password }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
         // Success
-        setError("");
+        setError("Login Successful! Redirecting...");
 
-        // Save user in Zustand and localStorage
+        // Save user using the store setter and localStorage
         setUser(data.user);
         localStorage.setItem("rk-user", JSON.stringify(data.user));
 
-        // Redirect to coins page
-        window.location.href = "/coins";
+        // Redirect after a slight delay
+        setTimeout(() => {
+          window.location.href = "/coins";
+        }, 500);
 
       } else {
         // Error
-        setError(data.error || "Invalid credentials");
+        setError(data.error || "Invalid credentials. Please try again.");
       }
 
 
@@ -117,9 +126,7 @@ export default function LoginForm() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-      {/* Container increased to sm:max-w-xl for a wider layout on laptops */}
       <div className="sm:mx-auto sm:w-full sm:max-w-xl mt-12">
-        {/* Header Section */}
         <div className="mx-auto h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
           <LogIn className="h-6 w-6 text-indigo-600" />
         </div>
@@ -127,17 +134,15 @@ export default function LoginForm() {
           Welcome Back
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Login to access your dashboard
+          Login with your Phone and Password
         </p>
       </div>
 
-      {/* Main Form Container */}
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
         <div className="bg-white py-8 px-4 shadow-lg sm:rounded-xl sm:px-10 border border-gray-100">
 
           <form className="space-y-6" onSubmit={handleSubmit}>
 
-            {/* Phone Input with +91 Prefix */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                 Mobile Number
@@ -155,34 +160,10 @@ export default function LoginForm() {
                   name="phone"
                   type="tel"
                   autoComplete="tel"
-                  // Use the formatting helper for the displayed value
                   value={formatPhoneNumber(form.phone)}
                   onChange={handleChange}
-                  // Input padding is adjusted to account for the +91 prefix
                   className="block w-full pl-24 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-lg transition-colors tracking-wide"
                   placeholder="55555 55555"
-                />
-              </div>
-            </div>
-
-            {/* Date of Birth Input */}
-            <div>
-              <label htmlFor="dob" className="block text-sm font-medium text-gray-700">
-                Date of Birth
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Calendar className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="dob"
-                  name="dob"
-                  type="date"
-                  max={new Date().toISOString().split("T")[0]} // Prevent future dates
-                  value={form.dob}
-                  onChange={handleChange}
-                  // Using Indigo for focus colors
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900 placeholder-gray-400"
                 />
               </div>
             </div>
@@ -203,7 +184,6 @@ export default function LoginForm() {
                   placeholder="••••••••"
                   value={form.password}
                   onChange={handleChange}
-                  // Using Indigo for focus colors
                   className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
                 <button
@@ -227,13 +207,13 @@ export default function LoginForm() {
 
             {/* Error/Success Message */}
             {error && (
-              <div className={`rounded-lg p-4 ${error.includes('successful') || error.includes('Redirecting') ? 'bg-green-50' : 'bg-red-50'}`}>
+              <div className={`rounded-lg p-4 ${error.includes('Successful') || error.includes('Redirecting') ? 'bg-green-50' : 'bg-red-50'}`}>
                 <div className="flex">
                   <div className="ml-3">
-                    <h3 className={`text-sm font-medium ${error.includes('successful') || error.includes('Redirecting') ? 'text-green-800' : 'text-red-800'}`}>
-                      {error.includes('successful') || error.includes('Redirecting') ? 'Success' : 'Error'}
+                    <h3 className={`text-sm font-medium ${error.includes('Successful') || error.includes('Redirecting') ? 'text-green-800' : 'text-red-800'}`}>
+                      {error.includes('Successful') || error.includes('Redirecting') ? 'Success' : 'Error'}
                     </h3>
-                    <div className={`text-sm ${error.includes('successful') || error.includes('Redirecting') ? 'text-green-700' : 'text-red-700'} mt-1`}>{error}</div>
+                    <div className={`text-sm ${error.includes('Successful') || error.includes('Redirecting') ? 'text-green-700' : 'text-red-700'} mt-1`}>{error}</div>
                   </div>
                 </div>
               </div>
@@ -243,7 +223,6 @@ export default function LoginForm() {
             <button
               type="submit"
               disabled={isLoading}
-              // Using Indigo for button colors
               className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
             >
               {isLoading ? (
