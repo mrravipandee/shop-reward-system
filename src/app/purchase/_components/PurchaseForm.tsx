@@ -1,189 +1,126 @@
-"use client"; // Assuming this component is client-side
+// components/PurchaseForm.tsx
+"use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation"; // UNCOMMENTED AND NOW USED
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
-import {
-  IndianRupee,
-  Coins, Scissors,
-  User, CheckCircle2, Eye, EyeOff, Loader2, Lock, X
-} from "lucide-react";
+import ScratchCardOverlay from "./ScratchCardOverlay";
+import UserDetailsSection from "./UserDetailsSection";
+import TransactionForm from "./TransactionForm";
 
 // --- Type Definitions ---
 interface TransactionSuccessData {
   success: boolean;
   newBalance: number;
   userName: string;
-  error?: string; // Optional error field for API responses
+  error?: string;
 }
 
 interface PurchaseFormProps {
-  // UPDATED: onComplete is still defined, but we will use useRouter internally for navigation
   onComplete: (destination: string) => void;
 }
 
 // --- Helper: Coin Calculation ---
 const calculateCoins = (purchaseAmount: number): number => {
   if (purchaseAmount < 10) return 0;
-
-  if (purchaseAmount < 30) {
-    return Math.floor(Math.random() * 4) + 2; // 2 - 5
-  }
-
-  if (purchaseAmount < 50) {
-    return Math.floor(Math.random() * 4) + 5; // 5 - 8
-  }
-
-  if (purchaseAmount < 100) {
-    return Math.floor(Math.random() * 6) + 10; // 10 - 15
-  }
-
-  if (purchaseAmount < 250) {
-    return Math.floor(Math.random() * 11) + 25; // 25 - 35
-  }
-
-  if (purchaseAmount < 500) {
-    return Math.floor(Math.random() * 16) + 35; // 35 - 50
-  }
-
-  if (purchaseAmount < 1000) {
-    return Math.floor(Math.random() * 31) + 50; // 50 - 80
-  }
-
-  // For higher range: 1 coin per ₹20 spent
+  if (purchaseAmount < 30) return Math.floor(Math.random() * 4) + 2;
+  if (purchaseAmount < 50) return Math.floor(Math.random() * 4) + 5;
+  if (purchaseAmount < 100) return Math.floor(Math.random() * 6) + 10;
+  if (purchaseAmount < 250) return Math.floor(Math.random() * 11) + 25;
+  if (purchaseAmount < 500) return Math.floor(Math.random() * 16) + 35;
+  if (purchaseAmount < 1000) return Math.floor(Math.random() * 31) + 50;
   return Math.floor(purchaseAmount / 20);
 };
 
 // --- Main Component ---
 export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
-  // UNCOMMENTED: Use useRouter for direct navigation
   const router = useRouter();
-
+  
   // Data States
-  const [phone, setPhone] = useState<string>(""); // Raw digits for API
-  const [formattedPhone, setFormattedPhone] = useState<string>(""); // Formatted display string
+  const [phone, setPhone] = useState<string>("");
+  const [formattedPhone, setFormattedPhone] = useState<string>("");
   const [userName, setUserName] = useState<string | null>(null);
   const [amount, setAmount] = useState<string>("");
   const [paymentMode, setPaymentMode] = useState<"cash" | "online">("cash");
   const [shopCode, setShopCode] = useState<string>("");
 
-  // Voice State
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-
   // UI States
-  const [isLoading, setIsLoading] = useState<boolean>(false); // For API check
-  const [isProcessing, setIsProcessing] = useState<boolean>(false); // For transaction API
-  const [showShopCode, setShowShopCode] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
 
   // Scratch States
   const [calculatedCoins, setCalculatedCoins] = useState<number>(0);
   const [showScratchCard, setShowScratchCard] = useState<boolean>(false);
   const [isScratched, setIsScratched] = useState<boolean>(false);
-  const [isScratching, setIsScratching] = useState<boolean>(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // FIX 1: Change ref type to `RefObject<HTMLCanvasElement>` to match ScratchCardOverlay's expectation.
+  // The ScratchCardOverlay must handle checking if canvasRef.current is null internally.
+  const canvasRef = useRef<HTMLCanvasElement | null>(null); 
 
-  // --- Voice Loading Effect ---
+  // --- Helper: Text To Speech (Moved here to utilize state/logic) ---
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+
   useEffect(() => {
-    // Function to load voices. Wait for voices to be loaded
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        setAvailableVoices(voices);
-      }
+      if (voices.length > 0) setAvailableVoices(voices);
     };
-
-    // Load immediately and set up a listener for when voices change (important for Chrome/Safari)
     loadVoices();
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
   }, []);
 
-
-  // --- Helper: Text To Speech ---
-  const speakGreeting = (name: string): void => {
+  const speakGreeting = useCallback((name: string): void => {
     if (typeof window === "undefined" || !window.speechSynthesis || availableVoices.length === 0) return;
 
     window.speechSynthesis.cancel();
     const text = `Namaste ${name} ji, aapka swagat hai Ravi Kirana pe. Dhanyawadd.`;
     const utterance = new SpeechSynthesisUtterance(text);
-
-    // Define a priority list for voices to ensure a clear, pleasant sound.
-    const preferredVoices = [
-      "Microsoft Heera - Hindi (India)", // Windows
-      "Google हिन्दी",                     // Chrome
-      "Apple Hindi",                      // Safari
-      "Microsoft Ravi - English (India)", // Windows fallback
-      "Google India English",              // Chrome fallback
-      "Apple English"                     // Safari fallback
-    ];
-
-    // Find the highest priority voice available
+    const preferredVoices = ["Microsoft Heera - Hindi (India)", "Google हिन्दी", "Apple Hindi", "Microsoft Ravi - English (India)", "Google India English", "Apple English"];
     let selectedVoice: SpeechSynthesisVoice | undefined;
     for (const pref of preferredVoices) {
       selectedVoice = availableVoices.find(v => v.name.includes(pref) || v.lang.includes(pref));
       if (selectedVoice) break;
     }
 
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-    }
-
+    if (selectedVoice) utterance.voice = selectedVoice;
     utterance.rate = 0.9;
     utterance.pitch = 1.1;
-
     window.speechSynthesis.speak(utterance);
-  };
+  }, [availableVoices]);
 
-
-  // --- HANDLE PHONE ENTRY & API CHECK (The "Namaste" logic) ---
-  const handlePhoneChange = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    // 1. Get value and remove all non-digits
-    const inputValue: string = e.target.value.replace(/\D/g, "");
-    const rawDigits: string = inputValue.slice(0, 10);
-
-    // 2. Format the digits for display: "+91 98765 43210"
-    let formatted: string = " ";
-    if (rawDigits.length > 5) {
-      formatted += rawDigits.slice(0, 5) + " " + rawDigits.slice(5);
-    } else {
-      formatted += rawDigits;
-    }
-
-    // 3. Update both raw and formatted states
-    setPhone(rawDigits); // Raw number for API
-    setFormattedPhone(formatted); // Formatted string for display
+  // --- HANDLE PHONE ENTRY & API CHECK ---
+  const handleUserCheck = async (rawDigits: string): Promise<void> => {
     setUserName(null);
     setErrorMsg("");
 
-    // 4. Trigger API check only when 10 digits are complete
-    if (rawDigits.length === 10) {
-      setIsLoading(true);
-      try {
-        // Mock API Call - Replace with actual fetch
-        const res: Response = await fetch("/api/user/check", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: rawDigits }),
-        });
+    if (rawDigits.length !== 10) return;
 
-        if (res.ok) {
-          const data = await res.json();
-          const name: string = data.user.name || "Customer";
-          setUserName(name);
-          speakGreeting(name);
-        } else if (res.status === 404) {
-          // FIX: Instead of router.push(), show an error message.
-          setErrorMsg(`User with phone ${rawDigits} not found. Please register them.`);
-        } else {
-          setErrorMsg("API Error during user check.");
-        }
-      } catch (err) {
-        setErrorMsg("Network error. Try again.");
-      } finally {
-        setIsLoading(false);
+    setIsLoading(true);
+    try {
+      const res: Response = await fetch("/api/user/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: rawDigits }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const name: string = data.user.name || "Customer";
+        setUserName(name);
+        speakGreeting(name);
+      } else if (res.status === 404) {
+        // NEW LOGIC: If user not found, redirect to /register
+        router.push(`/register?phone=${rawDigits}`); 
+      } else {
+        setErrorMsg("API Error during user check.");
       }
+    } catch (err) {
+      setErrorMsg("Network error. Try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -213,7 +150,6 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
   const processTransaction = async (): Promise<void> => {
     setIsProcessing(true);
     try {
-      // Mock API Call - Replace with actual fetch
       const res: Response = await fetch("/api/transaction/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -229,25 +165,18 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
       const data: TransactionSuccessData = await res.json();
 
       if (res.ok) {
-        // 1. Trigger celebration only if coins were earned
         if (calculatedCoins > 0) {
           confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
         }
+        
+        const destination = '/coins'; // User is verified at this point
 
-        // 2. DETERMINE DESTINATION: If user verified (userName is set), go to /coins, otherwise / (home).
-        const destination = userName ? '/coins' : '/';
-
-        // 3. Wait 2 seconds for the user to see the success message/confetti, then navigate
         setTimeout(() => {
-          // Using useRouter directly to handle navigation
           router.push(destination);
-
-          // The onComplete prop is now redundant but kept as per interface:
-          // onComplete(destination); 
         }, 4000);
 
       } else {
-        console.error(data.error || "Transaction failed. Please check Shop Code.");
+        console.error(data.error || "Transaction failed.");
         setErrorMsg(data.error || "Transaction failed. Please check Shop Code.");
         setShowScratchCard(false);
         setIsScratched(false);
@@ -261,198 +190,15 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
       setIsProcessing(false);
     }
   };
-
-  // --- SCRATCH CARD CANVAS LOGIC (Omitted for brevity, assumed unchanged) ---
-  const initCanvas = (): void => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    canvas.width = 300;
-    canvas.height = 200;
-    const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.fillStyle = "#A9A9A9";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "#555";
-    ctx.font = "bold 20px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("SCRATCH HERE", 150, 100);
-  };
-
-  const scratch = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>): void => {
-    const canvas = canvasRef.current;
-    if (!canvas || isScratched) return;
-    const rect: DOMRect = canvas.getBoundingClientRect();
-
-    let clientX: number;
-    let clientY: number;
-
-    if ('touches' in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-
-    const x: number = clientX - rect.left;
-    const y: number = clientY - rect.top;
-
-    const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.globalCompositeOperation = "destination-out";
-    ctx.beginPath();
-    ctx.arc(x, y, 25, 0, Math.PI * 2);
-    ctx.fill();
-  };
-
-  const checkReveal = (): void => {
-    setIsScratching(false);
-    const canvas = canvasRef.current;
-    if (!canvas || isScratched) return;
-    const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d");
-
-    if (!ctx) return;
-    const imageData: ImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    let transparent: number = 0;
-
-    for (let i = 3; i < imageData.data.length; i += 4) {
-      if (imageData.data[i] === 0) transparent++;
-    }
-
-    if (transparent / (imageData.data.length / 4) > 0.4) {
-      setIsScratched(true);
-      processTransaction(); // Trigger API call and confetti
-    }
-  };
-
+  
+  // FIX 2: Define the missing function handleCancelScratch
   const handleCancelScratch = (): void => {
     if (isProcessing) return;
     setShowScratchCard(false);
     setIsScratched(false);
-  }
+  };
 
-  useEffect(() => {
-    if (showScratchCard) setTimeout(initCanvas, 100);
-  }, [showScratchCard]);
-
-
-  // --- RENDER: SCRATCH CARD OVERLAY ---
-  if (showScratchCard) {
-
-    // --- NEW LOGIC FOR PRIZE CONTENT ---
-    const isZeroCoins = calculatedCoins === 0;
-
-    const prizeContent = isScratched && !isProcessing ? (
-      // State 3: Success/Navigation Pending (Confetti runs, waiting for redirect)
-      <div className="flex flex-col items-center text-white p-4 animate-in fade-in duration-500">
-
-        {isZeroCoins ? (
-          // New: Zero Coins Message
-          <div className="text-center">
-            <X className="w-10 h-10 mb-3 text-red-300 drop-shadow-lg" />
-            <span className="text-3xl font-black uppercase tracking-wide">
-              SORRY!
-            </span>
-            <div className="text-5xl font-black mt-2 drop-shadow-lg">
-              {calculatedCoins}
-            </div>
-            <div className="font-bold text-xl mt-1">COINS EARNED</div>
-            <p className="mt-4 text-sm font-semibold text-red-200">
-              Next time shop for ₹10 or more to start earning! Redirecting...
-            </p>
-          </div>
-        ) : (
-          // Earned Coins Message
-          <div className="text-center">
-            <CheckCircle2 className="w-10 h-10 mb-3 text-white drop-shadow-lg" />
-            <span className="text-xl font-bold uppercase tracking-wide">
-              Transaction Complete!
-            </span>
-            <div className="text-6xl font-black mt-2 drop-shadow-lg">
-              {calculatedCoins}
-            </div>
-            <div className="font-bold text-2xl mt-1">COINS EARNED</div>
-            <p className="mt-4 text-sm font-semibold text-indigo-100">
-              Thank you for shopping! Redirecting now...
-            </p>
-          </div>
-        )}
-      </div>
-    ) : isProcessing ? (
-      // State 2: Processing API
-      <div className="flex flex-col items-center text-white p-4">
-        {/* Loader2 spins in a circle via animate-spin */}
-        <Loader2 className="w-10 h-10 animate-spin mb-2" />
-        <span className="font-bold text-lg">Crediting Coins...</span>
-      </div>
-    ) : (
-      // State 1: Before Scratch / Hidden Prize
-      <div className="flex flex-col items-center text-white p-4">
-        <Coins className="w-14 h-14 text-white drop-shadow-md mb-2" />
-        <div className="text-5xl font-black drop-shadow-md">{calculatedCoins}</div>
-        <div className="text-white font-bold text-lg mt-1">COINS</div>
-      </div>
-    );
-
-
-    return (
-      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-        <div className="bg-white rounded-3xl p-6 w-full max-w-sm text-center relative overflow-hidden shadow-2xl">
-
-          {/* Cancel Button */}
-          <button
-            onClick={handleCancelScratch}
-            disabled={isScratched} // Cannot cancel once scratched, only on error
-            className="absolute top-3 right-3 p-2 text-gray-400 hover:text-red-600 transition disabled:opacity-50"
-          >
-            <X className="w-5 h-5" />
-          </button>
-
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            {isScratched ? (isZeroCoins ? "Better Luck Next Time!" : "Congratulations!") : "Scratch To Claim!"}
-          </h2>
-          <p className="text-sm text-gray-500 mb-6">
-            {isScratched ? "Your purchase is recorded." : "Reveal your reward below."}
-          </p>
-
-          <div className="relative w-full max-w-[300px] h-[200px] mx-auto rounded-xl overflow-hidden shadow-2xl ring-4 ring-indigo-500/50">
-
-            {/* The Prize (Behind Canvas) - Handles Success/Processing/Zero Coin states */}
-            {/* Conditional background based on outcome */}
-            <div className={`absolute inset-0 flex flex-col items-center justify-center 
-                ${isScratched && isZeroCoins
-                ? 'bg-gradient-to-br from-red-500 to-red-700'
-                : 'bg-gradient-to-br from-yellow-300 to-orange-500'
-              }`}
-            >
-              {prizeContent}
-            </div>
-
-            {/* The Scratch Layer */}
-            {!isScratched && (
-              <canvas
-                ref={canvasRef}
-                className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
-                onMouseDown={(e) => { setIsScratching(true); scratch(e); }}
-                onMouseMove={(e) => isScratching && scratch(e)}
-                onMouseUp={checkReveal}
-                onMouseLeave={checkReveal}
-                onTouchStart={(e) => { setIsScratching(true); scratch(e); }}
-                onTouchMove={(e) => isScratching && scratch(e)}
-                onTouchEnd={checkReveal}
-              />
-            )}
-          </div>
-
-        </div>
-      </div>
-    );
-  }
-
-  // --- RENDER: MAIN FORM (Omitted for brevity, assumed unchanged) ---
+  // --- RENDER ---
   return (
     <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden relative">
 
@@ -466,128 +212,44 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
         </div>
 
         {/* 1. Phone Input & User Check */}
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-gray-700 ml-1">CUSTOMER MOBILE</label>
-          <div className="relative group">
-            {/* Fixed +91 prefix for visual clarity */}
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-700/70 transition-colors pointer-events-none">
-              +91
-            </span>
-
-            <input
-              type="tel"
-              value={formattedPhone}
-              onChange={handlePhoneChange}
-              maxLength={16}
-              placeholder="98765 43210"
-              className="w-full pl-16 pr-12 py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-lg text-gray-900 tracking-wider focus:ring-2 focus:ring-indigo-500/50 focus:bg-white transition-all outline-none"
-            />
-            {isLoading && (
-              // This Loader2 icon rotates in a circle due to animate-spin
-              // <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-600 animate-spin" />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center">
-                <span className="loader-circle"></span>
-              </span>
-            )}
-          </div>
-
-          {/* Found User Badge */}
-          {userName && (
-            <div className="animate-in slide-in-from-top-2 duration-300">
-              <div className="bg-green-50 border border-green-100 p-3 rounded-xl flex items-center gap-3">
-                <div className="bg-green-100 p-2 rounded-full">
-                  <User className="w-4 h-4 text-green-700" />
-                </div>
-                <div>
-                  <p className="text-[10px] text-green-600 font-bold uppercase">Verified</p>
-                  <p className="text-sm font-bold text-green-800">{userName}</p>
-                </div>
-                <CheckCircle2 className="w-5 h-5 text-green-600 ml-auto" />
-              </div>
-            </div>
-          )}
-          {errorMsg && <p className="text-red-500 text-xs ml-1">{errorMsg}</p>}
-        </div>
+        <UserDetailsSection
+          phone={phone}
+          setPhone={setPhone}
+          formattedPhone={formattedPhone}
+          setFormattedPhone={setFormattedPhone}
+          userName={userName}
+          isLoading={isLoading}
+          errorMsg={errorMsg}
+          onCheck={handleUserCheck}
+        />
 
         {/* 2. Transaction Details (Only if user found) */}
         {userName && (
-          <form onSubmit={handlePreSubmit} className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-
-            <div className="grid grid-cols-2 gap-4">
-              {/* Amount */}
-              <div className="space-y-2 col-span-2">
-                <label className="text-xs font-bold text-gray-700 ml-1">AMOUNT (₹)</label>
-                <div className="relative">
-                  <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={handleAmountChange}
-                    className="w-full pl-9 pr-2 py-3 bg-gray-50 rounded-xl font-bold text-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="0"
-                    min="1"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Payment Mode */}
-            <div className="p-1 bg-gray-100 rounded-xl grid grid-cols-2 gap-1">
-              <button
-                type="button"
-                onClick={() => setPaymentMode("cash")}
-                className={`py-2 rounded-lg text-sm font-bold transition-all ${paymentMode === "cash" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-900"
-                  }`}
-              >
-                Cash
-              </button>
-              <button
-                type="button"
-                onClick={() => setPaymentMode("online")}
-                className={`py-2 rounded-lg text-sm font-bold transition-all ${paymentMode === "online" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-900"
-                  }`}
-              >
-                Online
-              </button>
-            </div>
-
-            {/* Shop Code */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-700 ml-1">SECURITY CODE</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input
-                  type={showShopCode ? "text" : "password"}
-                  value={shopCode}
-                  onChange={(e) => setShopCode(e.target.value)}
-                  maxLength={6}
-                  placeholder="------"
-                  className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-100 rounded-xl font-mono text-center text-lg tracking-[0.5em] focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowShopCode(!showShopCode)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-indigo-600"
-                >
-                  {showShopCode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={!amount || !shopCode || Number(amount) <= 0}
-              className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-indigo-600/25 hover:shadow-indigo-600/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
-            >
-              <Scissors className="w-5 h-5" />
-              <span>Process Purchase</span>
-            </button>
-          </form>
+          <TransactionForm
+            amount={amount}
+            shopCode={shopCode}
+            paymentMode={paymentMode}
+            calculatedCoins={calculatedCoins}
+            setShopCode={setShopCode}
+            setPaymentMode={setPaymentMode}
+            handleAmountChange={handleAmountChange}
+            handlePreSubmit={handlePreSubmit}
+          />
         )}
       </div>
+
+      {/* Scratch Card Overlay */}
+      {showScratchCard && (
+        <ScratchCardOverlay
+          canvasRef={canvasRef}
+          calculatedCoins={calculatedCoins}
+          isScratched={isScratched}
+          setIsScratched={setIsScratched}
+          isProcessing={isProcessing}
+          processTransaction={processTransaction}
+          onCancel={handleCancelScratch}
+        />
+      )}
     </div>
   );
 }
