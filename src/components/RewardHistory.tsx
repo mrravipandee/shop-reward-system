@@ -1,210 +1,167 @@
 "use client";
-import { useState } from "react";
-import { Coins, Sparkles, Gift, Trophy, ChevronLeft, ChevronRight, Zap, Crown, IndianRupee, Wallet } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { 
+  History, Coins, Sparkles, Gift, Trophy, Wallet, 
+  IndianRupee, CheckCircle, Clock, XCircle, ShoppingBag 
+} from 'lucide-react';
 
-interface RewardHistory {
+interface User {
   id: string;
-  date: string;
-  coinsEarned?: number;
-  coinsRedeemed?: number;
-  cashEarned?: number;
-  type: "purchase" | "spin" | "lucky-draw" | "redemption" | "cash-reward";
-  description: string;
-  status: "earned" | "redeemed";
-  rewardType: "coins" | "cash" | "both";
+  // ... other user properties
 }
 
-export default function RewardHistory() {
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+// Normalized structure for the history item fetched from the API
+interface HistoryItem {
+  id: string | number; 
+  type: "EARN" | "SPEND" | "CASH_EARN"; // Added CASH_EARN for clarity
+  title: string;
+  subtitle: string;
+  coins: number;
+  cashAmount?: number; 
+  isPositive: boolean; 
+  date: string; 
+  status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'COMPLETED'; // Simplified status
+}
 
-  // Enhanced reward history data including cash rewards
-  const rewardHistory: RewardHistory[] = [
-    {
-      id: "1",
-      date: "2024-01-15T10:30:00",
-      coinsEarned: 12,
-      type: "purchase",
-      description: "Grocery Shopping - ₹250",
-      status: "earned",
-      rewardType: "coins"
-    },
-    {
-      id: "2",
-      date: "2024-01-15T09:15:00",
-      coinsEarned: 25,
-      type: "spin",
-      description: "Spin Reward - Lucky Wheel",
-      status: "earned",
-      rewardType: "coins"
-    },
-    {
-      id: "3",
-      date: "2024-01-14T18:45:00",
-      coinsEarned: 42,
-      type: "purchase",
-      description: "Monthly Supplies - ₹500",
-      status: "earned",
-      rewardType: "coins"
-    },
-    {
-      id: "4",
-      date: "2024-01-14T14:20:00",
-      cashEarned: 50,
-      type: "lucky-draw",
-      description: "Lucky Draw Winner 🎉",
-      status: "earned",
-      rewardType: "cash"
-    },
-    {
-      id: "5",
-      date: "2024-01-13T16:30:00",
-      coinsRedeemed: 200,
-      type: "redemption",
-      description: "Redeemed - 1kg Sugar",
-      status: "redeemed",
-      rewardType: "coins"
-    },
-    {
-      id: "6",
-      date: "2024-01-13T11:00:00",
-      coinsEarned: 28,
-      type: "purchase",
-      description: "Kitchen Items - ₹350",
-      status: "earned",
-      rewardType: "coins"
-    },
-    {
-      id: "7",
-      date: "2024-01-12T19:15:00",
-      cashEarned: 100,
-      coinsEarned: 35,
-      type: "spin",
-      description: "Spin Reward - Mega Win!",
-      status: "earned",
-      rewardType: "both"
-    },
-    {
-      id: "8",
-      date: "2024-01-12T15:45:00",
-      coinsEarned: 85,
-      type: "purchase",
-      description: "Weekly Groceries - ₹1200",
-      status: "earned",
-      rewardType: "coins"
-    },
-    {
-      id: "9",
-      date: "2024-01-11T12:30:00",
-      coinsRedeemed: 300,
-      type: "redemption",
-      description: "Redeemed - ₹100 Cashback",
-      status: "redeemed",
-      rewardType: "coins"
-    },
-    {
-      id: "10",
-      date: "2024-01-10T17:20:00",
-      cashEarned: 200,
-      type: "lucky-draw",
-      description: "Grand Lucky Draw Winner 🏆",
-      status: "earned",
-      rewardType: "cash"
-    },
-    {
-      id: "11",
-      date: "2024-01-10T14:15:00",
-      cashEarned: 25,
-      type: "cash-reward",
-      description: "Instant Cash Reward",
-      status: "earned",
-      rewardType: "cash"
-    },
-    {
-      id: "12",
-      date: "2024-01-09T16:45:00",
-      coinsEarned: 15,
-      cashEarned: 10,
-      type: "spin",
-      description: "Daily Spin Bonus",
-      status: "earned",
-      rewardType: "both"
+interface RewardHistoryProps {
+  user: User;
+}
+
+
+export default function RewardHistoryDynamic({ user }: RewardHistoryProps) {
+  const [historyList, setHistoryList] = useState<HistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 1. Data Fetching
+  useEffect(() => {
+    async function fetchHistory() {
+      // Ensure user ID exists before fetching
+      if (!user.id) {
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        // Calls the combined history API route (as used in the first component)
+        // Ensure your API returns data matching the HistoryItem structure
+        const res = await fetch(`/api/user/history?userId=${user.id}`); 
+        
+        if (!res.ok) {
+           throw new Error(`API error: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        
+        if (data.history) {
+          // Sort by date descending (newest first)
+          const sortedHistory = data.history.sort((a: HistoryItem, b: HistoryItem) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          );
+          setHistoryList(sortedHistory);
+        }
+      } catch (e) {
+        console.error("Failed to fetch history:", e);
+        // Optionally set an error state here
+      } finally {
+        setIsLoading(false);
+      }
     }
-  ];
+    fetchHistory();
+    // Re-fetch if user.id changes
+  }, [user.id]);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(rewardHistory.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentItems = rewardHistory.slice(startIndex, startIndex + itemsPerPage);
+  // 2. Computed Stats (using useMemo for efficiency)
+  const stats = useMemo(() => {
+    let totalCoinsEarned = 0;
+    let totalCoinsRedeemed = 0;
+    let totalCashEarned = 0;
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    historyList.forEach(item => {
+      const coins = item.coins || 0;
+      const cash = item.cashAmount || 0;
+
+      if (item.type === 'EARN' && item.isPositive) {
+        totalCoinsEarned += coins;
+      } else if (item.type === 'CASH_EARN' && item.isPositive) {
+         totalCashEarned += cash;
+         // Handle combined rewards if your API logic requires it
+         if (item.type === 'CASH_EARN' && item.coins > 0) {
+            totalCoinsEarned += coins;
+         }
+      } else if (item.type === 'SPEND' && !item.isPositive) {
+        totalCoinsRedeemed += coins;
+      }
+    });
+
+    const netCoins = totalCoinsEarned - totalCoinsRedeemed;
+
+    return {
+      totalCoinsEarned,
+      totalCoinsRedeemed,
+      totalCashEarned,
+      netCoins,
+    };
+  }, [historyList]);
+  
+  // Icon for the type of activity
+  const getTypeIcon = (title: string, type: HistoryItem['type']) => {
+    if (type === 'SPEND') return <Gift size={20} />;
+    if (title.toLowerCase().includes('spin')) return <Sparkles size={20} />;
+    if (title.toLowerCase().includes('draw') || title.toLowerCase().includes('winner')) return <Trophy size={20} />;
+    if (type === 'CASH_EARN') return <Wallet size={20} />;
+    return <Coins size={20} />; // Default for EARN
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "purchase":
-        return <Coins className="w-4 h-4" />;
-      case "spin":
-        return <Sparkles className="w-4 h-4" />;
-      case "lucky-draw":
-        return <Trophy className="w-4 h-4" />;
-      case "redemption":
-        return <Gift className="w-4 h-4" />;
-      case "cash-reward":
-        return <Wallet className="w-4 h-4" />;
-      default:
-        return <Coins className="w-4 h-4" />;
+  const getStatusIcon = (status: HistoryItem['status']) => {
+    switch (status) {
+      case 'APPROVED': 
+      case 'COMPLETED': 
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'PENDING': 
+        return <Clock className="w-4 h-4 text-yellow-500 animate-pulse" />;
+      case 'REJECTED': 
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      default: 
+        return null;
     }
   };
 
-  const getTypeColor = (type: string, status: string) => {
-    if (status === "redeemed") {
-      return "bg-orange-100 text-orange-700 border-orange-200";
+  const getTypeStyle = (item: HistoryItem) => {
+    const isSpend = item.type === 'SPEND' || !item.isPositive;
+    const isCash = item.type === 'CASH_EARN' && item.cashAmount && item.cashAmount > 0;
+    const isEarn = !isSpend && !isCash;
+
+    if (isSpend) {
+      return { 
+        bg: 'bg-red-100', 
+        text: 'text-red-600', 
+        primaryColor: 'text-red-500', 
+        label: 'Coins Used' 
+      };
+    }
+    if (isCash) {
+      return { 
+        bg: 'bg-green-100', 
+        text: 'text-green-600', 
+        primaryColor: 'text-green-600', 
+        label: 'Cash Earned' 
+      };
+    }
+    if (isEarn) {
+      return { 
+        bg: 'bg-blue-100', 
+        text: 'text-blue-600', 
+        primaryColor: 'text-blue-600', 
+        label: 'Coins Earned' 
+      };
     }
     
-    switch (type) {
-      case "purchase":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "spin":
-        return "bg-purple-100 text-purple-700 border-purple-200";
-      case "lucky-draw":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
-      case "redemption":
-        return "bg-orange-100 text-orange-700 border-orange-200";
-      case "cash-reward":
-        return "bg-green-100 text-green-700 border-green-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
-    }
-  };
-
-  const getRewardIcon = (rewardType: string) => {
-    switch (rewardType) {
-      case "coins":
-        return <Coins className="w-4 h-4 text-yellow-500" />;
-      case "cash":
-        return <IndianRupee className="w-4 h-4 text-green-500" />;
-      case "both":
-        return (
-          <div className="flex gap-1">
-            <Coins className="w-3 h-3 text-yellow-500" />
-            <IndianRupee className="w-3 h-3 text-green-500" />
-          </div>
-        );
-      default:
-        return <Coins className="w-4 h-4 text-yellow-500" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    return status === "earned" ? "text-green-600" : "text-orange-600";
-  };
-
-  const getStatusIcon = (status: string) => {
-    return status === "earned" ? 
-      <Zap className="w-4 h-4 text-green-500" /> : 
-      <Gift className="w-4 h-4 text-orange-500" />;
+    return { 
+        bg: 'bg-gray-100', 
+        text: 'text-gray-600', 
+        primaryColor: 'text-gray-600', 
+        label: 'Activity' 
+    };
   };
 
   const formatDate = (dateString: string) => {
@@ -212,305 +169,181 @@ export default function RewardHistory() {
       day: 'numeric',
       month: 'short',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: true,
     });
   };
 
-  const getTotalCoinsEarned = () => {
-    return rewardHistory
-      .filter(item => item.status === "earned")
-      .reduce((total, item) => total + (item.coinsEarned || 0), 0);
-  };
 
-  const getTotalCoinsRedeemed = () => {
-    return rewardHistory
-      .filter(item => item.status === "redeemed")
-      .reduce((total, item) => total + (item.coinsRedeemed || 0), 0);
-  };
-
-  const getTotalCashEarned = () => {
-    return rewardHistory
-      .filter(item => item.status === "earned")
-      .reduce((total, item) => total + (item.cashEarned || 0), 0);
-  };
-
-  const getNetCoins = () => {
-    return getTotalCoinsEarned() - getTotalCoinsRedeemed();
-  };
-
-  const getRewardDisplay = (reward: RewardHistory) => {
-    if (reward.status === "redeemed") {
-      return {
-        amount: reward.coinsRedeemed || 0,
-        prefix: "-",
-        type: "coins" as const
-      };
-    }
-
-    if (reward.rewardType === "coins") {
-      return {
-        amount: reward.coinsEarned || 0,
-        prefix: "+",
-        type: "coins" as const
-      };
-    }
-
-    if (reward.rewardType === "cash") {
-      return {
-        amount: reward.cashEarned || 0,
-        prefix: "+",
-        type: "cash" as const
-      };
-    }
-
-    // For "both" type, show coins as primary with cash indicator
-    return {
-      amount: reward.coinsEarned || 0,
-      prefix: "+",
-      type: "both" as const,
-      cashAmount: reward.cashEarned || 0
-    };
-  };
-
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
+        <div className="text-center py-10 text-gray-500">
+          <Clock className="w-8 h-8 mx-auto mb-2 animate-spin text-gray-400" />
+          <p>Loading transaction history...</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-4 sm:p-6 max-w-4xl mx-auto w-full">
+      
       {/* Enhanced Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-start justify-between mb-6 border-b pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-primary to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <Coins className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-500 to-primary rounded-xl flex items-center justify-center shadow-lg">
+            <History className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-gray-900">Rewards & Transactions</h3>
-            <p className="text-gray-600 text-sm">Track your coins and cash rewards</p>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900">Activity Log</h3>
+            <p className="text-gray-600 text-sm">Your complete earning and spending history</p>
           </div>
         </div>
         
-        <div className="text-right">
-          <div className="flex items-center gap-2 text-primary mb-1">
-            <Coins className="w-5 h-5" />
-            <span className="text-lg font-bold">{getNetCoins()}</span>
+        {/* Current Balances */}
+        <div className="text-right flex flex-col gap-1">
+          <div className="flex items-center justify-end gap-1 text-primary">
+            <Coins className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-base sm:text-lg font-bold">{stats.netCoins}</span>
           </div>
-          <div className="flex items-center gap-2 text-green-600">
-            <IndianRupee className="w-4 h-4" />
-            <span className="text-sm font-bold">{getTotalCashEarned()}</span>
+          <div className="flex items-center justify-end gap-1 text-green-600">
+            <IndianRupee className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="text-sm font-bold">{stats.totalCashEarned}</span>
           </div>
-          <p className="text-gray-600 text-xs">Total Rewards</p>
+          <p className="text-gray-500 text-xs">Total Available</p>
         </div>
       </div>
-
-      {/* Enhanced Stats Bar */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-200">
-          <div className="flex items-center justify-center gap-1 text-blue-700 mb-1">
-            <Coins className="w-4 h-4" />
-            <span className="font-bold text-lg">{getTotalCoinsEarned()}</span>
-          </div>
-          <div className="text-blue-600 text-xs font-medium">Coins Earned</div>
-        </div>
-        <div className="bg-green-50 rounded-xl p-3 text-center border border-green-200">
-          <div className="flex items-center justify-center gap-1 text-green-700 mb-1">
-            <IndianRupee className="w-4 h-4" />
-            <span className="font-bold text-lg">{getTotalCashEarned()}</span>
-          </div>
-          <div className="text-green-600 text-xs font-medium">Cash Earned</div>
-        </div>
-        <div className="bg-orange-50 rounded-xl p-3 text-center border border-orange-200">
-          <div className="flex items-center justify-center gap-1 text-orange-700 mb-1">
-            <Gift className="w-4 h-4" />
-            <span className="font-bold text-lg">{getTotalCoinsRedeemed()}</span>
-          </div>
-          <div className="text-orange-600 text-xs font-medium">Coins Used</div>
-        </div>
-        <div className="bg-purple-50 rounded-xl p-3 text-center border border-purple-200">
-          <div className="flex items-center justify-center gap-1 text-purple-700 mb-1">
-            <Wallet className="w-4 h-4" />
-            <span className="font-bold text-lg">{getNetCoins()}</span>
-          </div>
-          <div className="text-purple-600 text-xs font-medium">Available Coins</div>
-        </div>
+      
+      {/* Stats Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <StatCard 
+          icon={<Coins className="w-4 h-4 text-blue-700" />} 
+          title="Coins Earned" 
+          value={stats.totalCoinsEarned} 
+          bgColor="bg-blue-50" 
+          borderColor="border-blue-200" 
+        />
+        <StatCard 
+          icon={<IndianRupee className="w-4 h-4 text-green-700" />} 
+          title="Cash Earned" 
+          value={stats.totalCashEarned} 
+          bgColor="bg-green-50" 
+          borderColor="border-green-200" 
+        />
+        <StatCard 
+          icon={<Gift className="w-4 h-4 text-orange-700" />} 
+          title="Coins Used" 
+          value={stats.totalCoinsRedeemed} 
+          bgColor="bg-orange-50" 
+          borderColor="border-orange-200" 
+        />
+        <StatCard 
+          icon={<Wallet className="w-4 h-4 text-purple-700" />} 
+          title="Net Coins" 
+          value={stats.netCoins} 
+          bgColor="bg-purple-50" 
+          borderColor="border-purple-200" 
+        />
       </div>
 
-      {/* Enhanced History List */}
-      <div className="space-y-3 mb-6">
-        {currentItems.map((reward) => {
-          const rewardDisplay = getRewardDisplay(reward);
-          
-          return (
-            <div
-              key={reward.id}
-              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:bg-white hover:shadow-md transition-all duration-200 group"
-            >
-              <div className="flex items-center gap-4 flex-1">
+      {/* History List */}
+      <div className="space-y-3">
+        {historyList.length === 0 ? (
+          <EmptyState />
+        ) : (
+          historyList.map((item) => {
+            const styles = getTypeStyle(item);
+            const primaryValue = item.type === 'CASH_EARN' && item.cashAmount && item.cashAmount > 0 ? item.cashAmount : item.coins;
+            const primaryIcon = item.type === 'CASH_EARN' && item.cashAmount && item.cashAmount > 0 ? <IndianRupee className="w-4 h-4" /> : <Coins className="w-4 h-4" />;
+            const secondaryValue = item.type === 'CASH_EARN' && item.coins && item.coins > 0 ? `+${item.coins} coins` : null;
 
-                {/* Details */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-gray-900 text-sm">
-                      {reward.description}
-                    </span>
-                    {reward.type === "lucky-draw" && (
-                      <Crown className="w-4 h-4 text-yellow-500" />
-                    )}
+            return (
+              <div 
+                key={item.id} 
+                className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl border border-gray-200 hover:bg-white hover:shadow-lg transition-all duration-200 group"
+              >
+                
+                {/* Left Side: Icon and Details */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className={`p-2 rounded-lg flex-shrink-0 ${styles.bg} ${styles.text}`}>
+                    {getTypeIcon(item.title, item.type)}
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-gray-600">
-                    <span>{formatDate(reward.date)}</span>
-                    <span className={`px-2 py-1 rounded-full font-medium ${getTypeColor(reward.type, reward.status)}`}>
-                      {reward.type.replace('-', ' ')}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      {getRewardIcon(reward.rewardType)}
+
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm sm:text-base text-gray-900 truncate flex items-center gap-2">
+                       {item.title} 
+                       {getStatusIcon(item.status)}
+                    </div>
+                    <div className="text-xs text-gray-500 flex flex-wrap gap-x-2">
+                       <span>{formatDate(item.date)}</span>
+                       <span className="truncate hidden sm:inline">• {item.subtitle}</span>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Reward Amount */}
-              <div className="text-right">
-                <div className={`flex items-center gap-2 font-bold text-lg ${getStatusColor(reward.status)}`}>
-                  {getStatusIcon(reward.status)}
-                  <div className="flex items-center gap-1">
-                    {rewardDisplay.type === "cash" && <IndianRupee className="w-4 h-4" />}
+                {/* Right Side: Amount and Status */}
+                <div className="text-right flex-shrink-0 ml-3">
+                  <div className={`font-bold text-base sm:text-lg flex items-center justify-end gap-1 ${styles.primaryColor}`}>
+                    {primaryIcon}
                     <span>
-                      {rewardDisplay.prefix}
-                      {rewardDisplay.amount}
+                      {item.isPositive ? '+' : '-'}
+                      {primaryValue}
                     </span>
-                    
                   </div>
-                </div>
-                
-                {/* Additional cash amount for "both" type */}
-                {rewardDisplay.type === "both" && rewardDisplay.cashAmount && (
-                  <div className="flex items-center gap-1 text-green-600 text-sm font-medium mt-1">
-                    <IndianRupee className="w-3 h-3" />
-                    <span>+{rewardDisplay.cashAmount} cash</span>
+                  
+                  {/* Secondary/Combined Reward Display */}
+                  {secondaryValue && (
+                     <div className="text-xs text-gray-500 font-medium mt-0.5">
+                        {secondaryValue}
+                     </div>
+                  )}
+
+                  <div className={`text-[10px] sm:text-xs uppercase font-bold mt-1 ${styles.primaryColor}`}>
+                     {item.status !== 'COMPLETED' ? item.status : styles.label}
                   </div>
-                )}
-                
-                <div className={`text-xs font-medium ${getStatusColor(reward.status)}`}>
-                  {reward.status === "earned" ? "Reward Earned" : "Coins Used"}
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
-
-      {/* Enhanced Pagination */}
-      {totalPages > 1 && (
-        <div className="flex flex-col gap-4 items-center justify-between border-t border-gray-200 pt-6">
-          {/* Page Info */}
-          <div className="text-gray-600 text-sm">
-            Page {currentPage} of {totalPages} • {rewardHistory.length} transactions
-          </div>
-
-          {/* Pagination Controls */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span className="text-sm">Previous</span>
-            </button>
-
-            {/* Page Numbers */}
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => handlePageChange(page)}
-                  className={`w-10 h-10 rounded-xl font-medium transition-all duration-200 text-sm ${
-                    currentPage === page
-                      ? 'bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg'
-                      : 'text-gray-700 hover:bg-gray-100 border border-gray-300'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
-            >
-              <span className="text-sm">Next</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Enhanced Empty State */}
-      {rewardHistory.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Coins className="w-10 h-10 text-gray-400" />
-          </div>
-          <h4 className="text-lg font-semibold text-gray-600 mb-2">
-            No Rewards Yet
-          </h4>
-          <p className="text-gray-500 text-sm mb-4">
-            Start earning coins and cash by shopping and participating in rewards!
-          </p>
-          <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-            <Sparkles className="w-4 h-4" />
-            <span>Shop to earn • Spin for rewards • Win cash prizes</span>
-          </div>
-        </div>
-      )}
-
-      {/* Enhanced Type Breakdown */}
-      <div className="grid grid-cols-5 gap-3 mt-6 pt-6 border-t border-gray-200">
-        <div className="text-center">
-          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-            <Coins className="w-4 h-4 text-blue-600" />
-          </div>
-          <div className="text-sm font-bold text-gray-900">
-            {rewardHistory.filter(r => r.type === 'purchase').length}
-          </div>
-          <div className="text-gray-600 text-xs">Purchases</div>
-        </div>
-        <div className="text-center">
-          <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-            <Sparkles className="w-4 h-4 text-purple-600" />
-          </div>
-          <div className="text-sm font-bold text-gray-900">
-            {rewardHistory.filter(r => r.type === 'spin').length}
-          </div>
-          <div className="text-gray-600 text-xs">Spin Wins</div>
-        </div>
-        <div className="text-center">
-          <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-            <Trophy className="w-4 h-4 text-yellow-600" />
-          </div>
-          <div className="text-sm font-bold text-gray-900">
-            {rewardHistory.filter(r => r.type === 'lucky-draw').length}
-          </div>
-          <div className="text-gray-600 text-xs">Lucky Draws</div>
-        </div>
-        <div className="text-center">
-          <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-            <Gift className="w-4 h-4 text-orange-600" />
-          </div>
-          <div className="text-sm font-bold text-gray-900">
-            {rewardHistory.filter(r => r.type === 'redemption').length}
-          </div>
-          <div className="text-gray-600 text-xs">Redemptions</div>
-        </div>
-        <div className="text-center">
-          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-            <Wallet className="w-4 h-4 text-green-600" />
-          </div>
-          <div className="text-sm font-bold text-gray-900">
-            {rewardHistory.filter(r => r.type === 'cash-reward').length}
-          </div>
-          <div className="text-gray-600 text-xs">Cash Rewards</div>
-        </div>
-      </div>
+      
     </div>
   );
 }
+
+interface StatCardProps {
+    icon: React.ReactNode;
+    title: string;
+    value: number;
+    bgColor: string;
+    borderColor: string;
+}
+const StatCard: React.FC<StatCardProps> = ({ icon, title, value, bgColor, borderColor }) => (
+    <div className={`${bgColor} rounded-xl p-3 text-center border ${borderColor} flex flex-col items-center`}>
+        <div className="flex items-center justify-center gap-1 mb-1">
+            {icon}
+            <span className="font-bold text-lg text-gray-800">{value}</span>
+        </div>
+        <div className="text-gray-600 text-xs font-medium">{title}</div>
+    </div>
+);
+
+const EmptyState: React.FC = () => (
+    <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-200 shadow-md">
+            <Coins className="w-8 h-8 text-gray-400" />
+        </div>
+        <h4 className="text-lg font-semibold text-gray-600 mb-2">
+            No Activity Found
+        </h4>
+        <p className="text-gray-500 text-sm mb-4">
+            It looks like you haven&apos;t earned or redeemed any rewards yet.
+        </p>
+        <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+            <Sparkles className="w-4 h-4" />
+            <span>Shop to earn • Check back soon!</span>
+        </div>
+    </div>
+);

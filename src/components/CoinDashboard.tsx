@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { Coins, Zap, Gift, Award, IndianRupee, Star, History, TrendingUp, Settings, X, ChevronRight } from 'lucide-react';
 import UserProfileHeader from "./UserProfileHeader";
 import { useUserStore } from "@/store/userStore";
-import { RedeemProduct, MenuItem, User } from "@/types/user"; 
+import { RedeemProduct, MenuItem, User } from "@/types/user";
+import RewardHistory from "./RewardHistory";
 
 const redeemProducts: RedeemProduct[] = [
   // ... (Your product data remains the same) ...
@@ -19,7 +20,7 @@ const redeemProducts: RedeemProduct[] = [
 
 // 4. Define the Menus Array (outside the component for performance)
 const menus: MenuItem[] = [
-  {id: "cash", label: "Convert to Cash", icon: IndianRupee, description: "Convert your coins into cash rewards"},
+  { id: "cash", label: "Convert to Cash", icon: IndianRupee, description: "Convert your coins into cash rewards" },
   { id: "dashboard", label: "Dashboard", icon: TrendingUp, description: "View your earning analytics and performance" },
   { id: "rewards", label: "Rewards Store", icon: Gift, description: "Browse and redeem your coins for amazing rewards" },
   { id: "history", label: "Reward History", icon: History, description: "Check your redemption history and transactions" },
@@ -35,14 +36,62 @@ const menus: MenuItem[] = [
 export default function CoinDashboard() {
   const { user, setUser } = useUserStore();
 
+  const [processingId, setProcessingId] = useState<number | null>(null);
+  const [activeRedemption, setActiveRedemption] = useState<{ code: string, product: string } | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [selectedMenu, setSelectedMenu] = useState<string | null>(null);
-  
+
   const [selectedCategory, setSelectedCategory] = useState<RedeemProduct['category'] | 'all'>('all');
 
   const coins = user?.coins ?? 0;
-  const COIN_TO_RUPEE = user?.coinValue ?? 0.25;  
-  
+  const COIN_TO_RUPEE = user?.coinValue ?? 0.25;
+
+  const handleRedeem = async (product: RedeemProduct) => {
+    if (!user || processingId === product.id) return;
+
+    // 1. Client-side Validation
+    if (coins < product.requiredCoins) {
+      alert("You don't have enough coins!");
+      return;
+    }
+    if (product.stock <= 0) {
+      alert("This item is sold out.");
+      return;
+    }
+
+    setProcessingId(product.id);
+
+    try {
+      const res = await fetch("/api/redeem/request", { // Calling the User Request API
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id, // Ensure user object has 'id' or '_id'
+          product: product,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // 2. Success: Update Global User State (coins deducted)
+        setUser(data.user);
+
+        // 3. Show Redemption Code Popup
+        setActiveRedemption({ code: data.redeemCode, product: product.name });
+      } else {
+        alert(data.message || "Redemption request failed.");
+      }
+
+    } catch (error) {
+      console.error("Redemption error", error);
+      alert("Network error. Please try again.");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   // ⬇️ FETCH USER FROM /api/me ON PAGE LOAD
   useEffect(() => {
     async function loadUser() {
@@ -58,27 +107,27 @@ export default function CoinDashboard() {
           // window.location.href = "/login"; // Uncomment for actual production use
           console.error("API failed, using placeholder user data.");
           // Placeholder user data for development if API fails
-           setUser({
-              id: "dev-123",
-              name: "Guest User",
-              phone: "9876543210",
-              coins: 750,
-              coinValue: 0.25,
-              createdAt: new Date().toISOString(),
-           } as User); // Cast as User to satisfy TypeScript
+          setUser({
+            id: "dev-123",
+            name: "Guest User",
+            phone: "9876543210",
+            coins: 750,
+            coinValue: 0.25,
+            createdAt: new Date().toISOString(),
+          } as User); // Cast as User to satisfy TypeScript
         }
       } catch (err) {
         console.error("ME API ERROR:", err);
         // window.location.href = "/login"; // Uncomment for actual production use
-         // Placeholder user data on network/fetch error
-         setUser({
-              id: "dev-123",
-              name: "Dev Mode",
-              phone: "9876543210",
-              coins: 750,
-              coinValue: 0.25,
-              createdAt: new Date().toISOString(),
-           } as User);
+        // Placeholder user data on network/fetch error
+        setUser({
+          id: "dev-123",
+          name: "Dev Mode",
+          phone: "9876543210",
+          coins: 750,
+          coinValue: 0.25,
+          createdAt: new Date().toISOString(),
+        } as User);
       } finally {
         setLoading(false);
       }
@@ -86,7 +135,7 @@ export default function CoinDashboard() {
 
     // FIX: Call the loadUser function inside useEffect
     loadUser();
-  }, [setUser]); 
+  }, [setUser]);
 
   if (loading) {
     return (
@@ -97,26 +146,26 @@ export default function CoinDashboard() {
   }
 
   // FIX: User object must exist after loading or the placeholder is set
-  if (!user) return null; 
+  if (!user) return null;
 
   const coinValue = (coins * COIN_TO_RUPEE).toFixed(2);
 
   const updateStoreCoins = (newCoins: number) => {
     // FIX: Set the new user object with updated coins
-    setUser({ ...user, coins: newCoins } as User); 
+    setUser({ ...user, coins: newCoins } as User);
   };
 
-  const handleRedeem = (product: RedeemProduct) => {
-    if (coins >= product.requiredCoins && product.stock > 0) {
-      const newCoins = coins - product.requiredCoins;
-      // In a real application, you would also decrease stock and call a backend API here.
-      updateStoreCoins(newCoins); 
-      
-      console.log(`Successfully redeemed ${product.name}! New coin balance: ${newCoins}`);
-    } else {
-      console.log(`Failed to redeem ${product.name}: Not enough coins or sold out.`);
-    }
-  };
+  // const handleRedeem = (product: RedeemProduct) => {
+  //   if (coins >= product.requiredCoins && product.stock > 0) {
+  //     const newCoins = coins - product.requiredCoins;
+  //     // In a real application, you would also decrease stock and call a backend API here.
+  //     updateStoreCoins(newCoins);
+
+  //     console.log(`Successfully redeemed ${product.name}! New coin balance: ${newCoins}`);
+  //   } else {
+  //     console.log(`Failed to redeem ${product.name}: Not enough coins or sold out.`);
+  //   }
+  // };
 
   const handleMenuClick = (menuId: string) => {
     setSelectedMenu(menuId);
@@ -128,14 +177,14 @@ export default function CoinDashboard() {
   const closeMenuPopup = () => {
     setSelectedMenu(null);
   };
-  
+
   const filteredProducts = selectedCategory === 'all'
     ? redeemProducts
     : redeemProducts.filter(p => p.category === selectedCategory);
 
   const getMenuContent = (menuId: string) => {
     // FIX: Find the menu item, guaranteed to exist since we only set valid menuIds
-    const menu = menus.find(m => m.id === menuId) as MenuItem; 
+    const menu = menus.find(m => m.id === menuId) as MenuItem;
 
     switch (menuId) {
       case "dashboard":
@@ -213,23 +262,22 @@ export default function CoinDashboard() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b pb-4">
               <h3 className="text-2xl font-bold text-gray-900 mb-2 sm:mb-0">Rewards Store</h3>
               <div className="flex items-center gap-2 text-gray-600">
-                  <Coins className="w-5 h-5 text-yellow-500" />
-                  <span className="font-semibold text-lg">{coins.toLocaleString()}</span>
-                  <span>Available Coins</span>
+                <Coins className="w-5 h-5 text-yellow-500" />
+                <span className="font-semibold text-lg">{coins.toLocaleString()}</span>
+                <span>Available Coins</span>
               </div>
             </div>
 
             {/* Categories Filter */}
             <div className="flex flex-wrap gap-2 mb-6">
               {allCategories.map((category) => (
-                <button 
+                <button
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-150 ${
-                    selectedCategory === category
-                      ? "bg-primary text-white shadow-md"
-                      : "bg-gray-100 text-gray-700 hover:bg-primary/10 hover:text-primary"
-                  }`}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-150 ${selectedCategory === category
+                    ? "bg-primary text-white shadow-md"
+                    : "bg-gray-100 text-gray-700 hover:bg-primary/10 hover:text-primary"
+                    }`}
                 >
                   {category.charAt(0).toUpperCase() + category.slice(1)} {category !== 'all' && `(${redeemProducts.filter(p => p.category === category).length})`}
                 </button>
@@ -246,7 +294,7 @@ export default function CoinDashboard() {
                   >
                     {/* Product Image/Icon */}
                     <div className="relative w-full h-40 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-                       {/* Simplified Image Placeholder: Replace with <img src={product.image} ... /> if available */}
+                      {/* Simplified Image Placeholder: Replace with <img src={product.image} ... /> if available */}
                       <div className="w-16 h-16 bg-white/80 rounded-2xl flex items-center justify-center shadow-lg">
                         <span className="text-2xl">{product.category === 'cash' ? '💵' : product.category === 'grocery' ? '🛒' : '🎁'}</span>
                       </div>
@@ -254,17 +302,17 @@ export default function CoinDashboard() {
                       {/* Popular Badge */}
                       {product.popular && (
                         <div className="absolute top-3 left-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                          <Star className="w-3 h-3 fill-white text-white"/>
+                          <Star className="w-3 h-3 fill-white text-white" />
                           Popular
                         </div>
                       )}
 
                       {/* Stock Badge */}
                       <div className={`absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-semibold ${product.stock > 10
-                          ? "bg-green-500 text-white"
-                          : product.stock > 0
-                            ? "bg-yellow-500 text-white"
-                            : "bg-red-500 text-white"
+                        ? "bg-green-500 text-white"
+                        : product.stock > 0
+                          ? "bg-yellow-500 text-white"
+                          : "bg-red-500 text-white"
                         }`}>
                         {product.stock > 10 ? "In Stock" : product.stock > 0 ? "Low Stock" : "Sold Out"}
                       </div>
@@ -283,8 +331,8 @@ export default function CoinDashboard() {
                             <span
                               key={i}
                               className={`text-sm ${i < Math.floor(product.rating)
-                                  ? "text-yellow-400"
-                                  : "text-gray-300"
+                                ? "text-yellow-400"
+                                : "text-gray-300"
                                 }`}
                             >
                               ★
@@ -323,13 +371,20 @@ export default function CoinDashboard() {
                       {/* Redeem Button */}
                       <button
                         onClick={() => handleRedeem(product)}
-                        disabled={coins < product.requiredCoins || product.stock === 0}
-                        className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${coins >= product.requiredCoins && product.stock > 0
-                            ? "bg-gradient-to-r from-primary to-purple-600 text-white hover:shadow-lg hover:scale-[1.02]"
-                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        // Disable if not enough coins, sold out, OR currently processing this item
+                        disabled={coins < product.requiredCoins || product.stock === 0 || processingId === product.id}
+                        className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${processingId === product.id
+                          ? "bg-primary/70 text-white cursor-not-allowed"
+                          : product.stock === 0
+                            ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                            : coins >= product.requiredCoins
+                              ? "bg-primary text-white hover:opacity-90"
+                              : "bg-gray-100 text-gray-500 cursor-not-allowed"
                           }`}
                       >
-                        {product.stock === 0 ? (
+                        {processingId === product.id ? (
+                          <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
+                        ) : product.stock === 0 ? (
                           "Sold Out"
                         ) : coins >= product.requiredCoins ? (
                           <>
@@ -372,6 +427,12 @@ export default function CoinDashboard() {
           </div>
         );
 
+      case "history":
+        return (
+          <div>
+            <RewardHistory user={user} />
+          </div>
+        );
       default:
         return (
           <div className="text-center py-8">
@@ -400,7 +461,7 @@ export default function CoinDashboard() {
                 <div className="w-10 h-10 bg-gradient-to-br from-primary to-purple-600 rounded-xl flex items-center justify-center">
                   {(() => {
                     const menu = menus.find(m => m.id === selectedMenu);
-                    const Icon = menu?.icon || Settings; 
+                    const Icon = menu?.icon || Settings;
                     return <Icon className="w-5 h-5 text-white" />;
                   })()}
                 </div>
@@ -452,7 +513,7 @@ export default function CoinDashboard() {
               <p className="text-gray-600 text-base sm:text-lg lg:text-xl mt-2 max-w-2xl mx-auto">
                 Redeem your earned coins for amazing products and cashback rewards
               </p>
-              
+
               {/* Added Quick Coin Balance below the title */}
               <div className="flex items-center gap-2 mt-4 text-xl font-semibold text-gray-700 p-2 px-4 bg-yellow-50 rounded-full border border-yellow-200 shadow-sm">
                 <Coins className="w-6 h-6 text-yellow-500" />
@@ -487,22 +548,22 @@ export default function CoinDashboard() {
               </div>
             </div>
           </div>
-          
+
           {/* Automatically display Rewards Store on the main page if no menu is selected */}
           <div className="max-w-7xl mx-auto">
-             <h2 className="text-3xl font-bold text-gray-900 mb-6 border-b pb-2">Featured Rewards</h2>
-             
-             <div className="text-center py-12 bg-indigo-50 rounded-xl shadow-inner p-3">
-                <h3 className="text-2xl font-bold text-indigo-900 mb-4">Ready to Redeem?</h3>
-                <p className="text-indigo-700 mb-6">Click on **Rewards Store** in the Quick Access panel above to browse all products and cashback offers!</p>
-                <button
-                    onClick={() => handleMenuClick("rewards")}
-                    className="flex items-center gap-2 mx-auto px-8 py-3 bg-gradient-to-r from-primary to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.03] transition-all duration-300"
-                >
-                    <Gift className="w-5 h-5" />
-                    Go to Rewards Store
-                </button>
-             </div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-6 border-b pb-2">Featured Rewards</h2>
+
+            <div className="text-center py-12 bg-indigo-50 rounded-xl shadow-inner p-3">
+              <h3 className="text-2xl font-bold text-indigo-900 mb-4">Ready to Redeem?</h3>
+              <p className="text-indigo-700 mb-6">Click on **Rewards Store** in the Quick Access panel above to browse all products and cashback offers!</p>
+              <button
+                onClick={() => handleMenuClick("rewards")}
+                className="flex items-center gap-2 mx-auto px-8 py-3 bg-gradient-to-r from-primary to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.03] transition-all duration-300"
+              >
+                <Gift className="w-5 h-5" />
+                Go to Rewards Store
+              </button>
+            </div>
           </div>
         </div>
       </div>
