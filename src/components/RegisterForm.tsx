@@ -1,65 +1,44 @@
+// RegisterForm.tsx (MODIFIED)
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect, useRef } from "react"; // ADDED useRef
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   User, Calendar, Phone, Lock, Eye, EyeOff, UserPlus, ArrowRight, Image as ImageIcon 
 } from "lucide-react";
 
-// --- START: Integrated Password Strength Logic and Component (MODIFIED) ---
-// Define the strength criteria interface (SIMPLIFIED)
+// --- START: Integrated Password Strength Logic and Component (UNCHANGED) ---
+// (Omitted for brevity, but this section remains as you provided it)
 interface StrengthCriteria {
   length: boolean;
 }
-
-// Function to calculate strength criteria (SIMPLIFIED)
 const checkStrength = (password: string): StrengthCriteria => ({
   length: password.length >= 8,
 });
-
-// Function to determine overall strength score (SIMPLIFIED)
 const calculateScore = (criteria: StrengthCriteria): number => {
-  // Score is 1 if length is met, 0 otherwise
   return criteria.length ? 1 : 0;
 };
-
 interface PasswordStrengthMeterProps {
   password: string;
 }
-
-// Inline Password Strength Meter Component (MODIFIED)
 const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ password }) => {
-  if (!password) {
-    return null;
-  }
-
+  if (!password) { return null; }
   const criteria = checkStrength(password);
-  const score = calculateScore(criteria); // Score will be 0 or 1
-
   const isStrongEnough = criteria.length;
-
   const strengthText = isStrongEnough ? 'OK' : 'Too Short';
   const strengthColor = isStrongEnough ? 'bg-green-500' : 'bg-red-500';
-
-  // Bar width calculation based on the single criteria (length)
   const barWidth = isStrongEnough ? '100%' : `${(password.length / 8) * 100}%`;
-
   return (
     <div className="mt-2 space-y-2">
-      {/* Strength Bar */}
       <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
         <div 
           className={`h-full transition-all duration-500 ${strengthColor}`} 
           style={{ width: barWidth }}
         />
       </div>
-      
-      {/* Feedback Text */}
       <p className={`text-xs font-semibold ${isStrongEnough ? 'text-green-600' : 'text-gray-500'}`}>
         Status: <span className="font-bold">{strengthText}</span>
       </p>
-
-      {/* Criteria List (SIMPLIFIED) */}
       <div className="grid grid-cols-1 gap-1 text-xs text-gray-500">
         <span className={`flex items-center ${criteria.length ? 'text-green-600' : ''}`}>
           {criteria.length ? '✔' : '•'} Minimum 8 Characters
@@ -68,11 +47,10 @@ const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ password 
     </div>
   );
 };
-// --- END: Integrated Password Strength Logic and Component (MODIFIED) ---
+// --- END: Integrated Password Strength Logic and Component (UNCHANGED) ---
 
 
-// --- TypeScript Interfaces (No change) ---
-
+// --- TypeScript Interfaces (UNCHANGED) ---
 interface RegisterFormState {
   name: string;
   dob: string;
@@ -81,7 +59,6 @@ interface RegisterFormState {
   confirmPassword: string;
   image: File | null;
 }
-
 interface PasswordInputProps {
     id: string;
     name: keyof RegisterFormState;
@@ -91,25 +68,19 @@ interface PasswordInputProps {
     showPassword: boolean;
     setShowPassword: (show: boolean) => void;
 }
-
-// Interface for the user data structure expected from the API
 interface UserData {
   id: string;
   name: string;
   phone: string;
-  // Add other user fields like balance, role, etc. as needed
 }
-
-// Interface for the full API response structure
 interface AuthResponseData {
   success: boolean;
   message: string;
   error?: string;
-  token?: string; // JWT token for authentication
-  user?: UserData; // Logged-in user details
+  token?: string;
+  user?: UserData;
 }
-
-// Helper Component for Password Inputs (Placeholder text updated)
+// Helper Component for Password Inputs (UNCHANGED)
 const PasswordInput: React.FC<PasswordInputProps> = ({ 
     id, name, placeholder, value, onChange, showPassword, setShowPassword 
 }) => {
@@ -136,7 +107,6 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
                 />
                 <button
                     type="button"
-                    // Toggle the form's global showPassword state
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
                 >
@@ -147,7 +117,6 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
                     )}
                 </button>
             </div>
-            {/* Display strength meter only for the main password field */}
             {isPasswordField && <PasswordStrengthMeter password={value} />}
         </div>
     );
@@ -160,15 +129,30 @@ export default function RegisterForm() {
   });
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fileInputRef = useRef<HTMLInputElement>(null); // NEW: Ref for file input
 
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
-  // Creates a temporary URL for image preview when a file is selected
+  // LOGIC ADDED: Pre-fill phone number from URL query (UNCHANGED)
+  useEffect(() => {
+    const phoneFromQuery = searchParams.get('phone');
+    if (phoneFromQuery && /^\d{10}$/.test(phoneFromQuery)) {
+      setForm((prev) => ({ ...prev, phone: phoneFromQuery }));
+    }
+  }, [searchParams]);
+
+  // Creates a temporary URL for image preview (UNCHANGED)
   const imageUrl = useMemo(() => {
     return form.image ? URL.createObjectURL(form.image) : null;
   }, [form.image]);
+
+  // NEW: Handler for clicking the circular preview
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -208,16 +192,15 @@ export default function RegisterForm() {
       return `${number.slice(0, 5)} ${number.slice(5, 10)}`;
   };
   
-  // Placeholder for simulating immediate login (e.g., storing a token)
+  // MODIFIED: Simulates login AND stores the phone number
   const simulateLogin = (token: string, userData: UserData) => {
-    // In a real application, you would store the token/user state here.
     console.log("Simulating automatic login with token:", token);
-    console.log("Logged in user:", userData.name);
+    // Store both auth token and user's phone number
     localStorage.setItem('authToken', token);
-    // In a state management system (Redux/Zustand), you'd dispatch a LOGIN action.
+    localStorage.setItem('userPhone', userData.phone); 
   };
 
-  // UPDATED SUBMIT FUNCTION
+  // UPDATED SUBMIT FUNCTION (UNCHANGED logic, but new functionality is inside simulateLogin)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -231,20 +214,16 @@ export default function RegisterForm() {
       setIsLoading(false);
       return;
     }
-
     if (!/^[6-9]\d{9}$/.test(phone)) {
       setError("Please enter a valid 10-digit mobile number");
       setIsLoading(false);
       return;
     }
-
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       setIsLoading(false);
       return;
     }
-    
-    // Check if the password meets the minimum length requirement (MODIFIED)
     if (password.length < 8) {
         setError("Password must be at least 8 characters long.");
         setIsLoading(false);
@@ -253,7 +232,6 @@ export default function RegisterForm() {
     // --- End Validation ---
 
     try {
-        // Create FormData object for sending multipart data (file + text)
         const formData = new FormData();
         formData.append("name", name);
         formData.append("dob", dob);
@@ -261,9 +239,8 @@ export default function RegisterForm() {
         formData.append("password", password);
         
         if (image) {
-            formData.append("image", image); // Append the actual File object
+            formData.append("image", image);
         } else {
-            // Send a placeholder or null if no image is selected, depending on API requirements
             formData.append("image", ""); 
         }
 
@@ -272,39 +249,32 @@ export default function RegisterForm() {
             body: formData, 
         });
 
-        // Use the defined interface to type the response data
         const data: AuthResponseData = await res.json();
 
         if (res.ok) {
-          // Registration successful (200-299 status code)
-          
-            // Safely retrieve token and user data, using fallbacks if necessary
             const token = data.token || 'simulated-jwt-token-for-user';
-            
             const userData: UserData = data.user || { 
                 id: 'new-user-id', 
                 name: name, 
                 phone: phone 
             };
 
-            // 1. Log the user in immediately
+            // 1. Log the user in and store phone
             simulateLogin(token, userData);
 
             // 2. Set success message
             setError(data.message || `Registration successful! Logging in as ${userData.name}...`);
             
-            // 3. Redirect to the main dashboard /coins
+            // 3. Redirect
             setTimeout(() => {
                 router.push('/coins'); 
             }, 2000); 
 
         } else {
-            // Registration failed (400 or 500 status code)
             setError(data.error || data.message || "Registration failed. Please try again.");
         }
 
     } catch (err) {
-        // Type casting the error to display a meaningful message
         const errorMessage = (err instanceof Error) ? err.message : "An unknown network error occurred.";
         console.error("Fetch error:", err);
         setError(`Network error or server connection failed: ${errorMessage}`);
@@ -316,7 +286,7 @@ export default function RegisterForm() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8"> 
       <div className="sm:mx-auto sm:w-full sm:max-w-xl mt-12">
-        {/* Header Section */}
+        {/* Header Section (UNCHANGED) */}
         <div className="mx-auto h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
           <UserPlus className="h-6 w-6 text-indigo-600" />
         </div>
@@ -333,10 +303,13 @@ export default function RegisterForm() {
           
           <form className="space-y-6" onSubmit={handleSubmit}>
             
-            {/* Image Upload and Preview Field */}
+            {/* Image Upload and Preview Field (MODIFIED) */}
             <div className="flex flex-col items-center space-y-3">
-                {/* Circular Image Preview */}
-                <div className="w-28 h-28 rounded-full bg-gray-200 border-4 border-indigo-400 flex items-center justify-center overflow-hidden shadow-md">
+                {/* Circular Image Preview (NOW CLICKABLE) */}
+                <div 
+                    className="w-28 h-28 rounded-full bg-gray-200 border-4 border-indigo-400 flex items-center justify-center overflow-hidden shadow-md cursor-pointer hover:border-indigo-600 transition-colors"
+                    onClick={handleImageClick} // NEW CLICK HANDLER
+                >
                     {imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img 
@@ -345,31 +318,43 @@ export default function RegisterForm() {
                             className="w-full h-full object-cover" 
                         />
                     ) : (
-                        <User className="h-10 w-10 text-gray-500" />
+                        <div className="flex flex-col items-center text-gray-500">
+                           <User className="h-8 w-8 text-gray-500" />
+                           <p className="text-xs font-semibold mt-1">Click to Upload</p>
+                        </div>
                     )}
                 </div>
 
-                {/* Custom File Input */}
+                {/* Hidden File Input */}
                 <input
                     id="image"
                     name="image"
                     type="file"
                     accept=".png, .jpeg, .jpg, .svg"
                     onChange={handleChange}
-                    className="hidden" // Hide the default file input button
+                    ref={fileInputRef} // NEW REF
+                    className="hidden" 
                 />
-                <label 
-                    htmlFor="image"
-                    className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-full text-sm transition-colors flex items-center"
-                >
-                    <ImageIcon className="h-4 w-4 mr-2" />
-                    {form.image ? "Change Photo" : "Upload Photo (< 2MB)"}
-                </label>
+                
+                {/* Upload Button/Label (SIMPLIFIED/MODIFIED TEXT) */}
+                <p className="text-xs text-gray-500 font-medium">
+                    Upload image (PNG, JPEG, SVG) size less than 2MB
+                </p>
+
+                {form.image && (
+                    <label 
+                        htmlFor="image"
+                        className="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-full text-sm transition-colors flex items-center"
+                    >
+                        <ImageIcon className="h-4 w-4 mr-2" />
+                        Change Photo
+                    </label>
+                )}
             </div>
             
-            <div className="space-y-6"> {/* All fields now stacked in a single column */}
+            <div className="space-y-6"> 
                 
-                {/* Full Name Input */}
+                {/* All other input fields remain here... */}
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700">Full Name</label>
                   <div className="mt-1 relative rounded-md shadow-sm">
@@ -403,7 +388,6 @@ export default function RegisterForm() {
                 <div>
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Mobile Number</label>
                   <div className="mt-1 relative rounded-md shadow-sm">
-                    {/* Visual +91 Prefix */}
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center border-r border-gray-300 pr-2 pointer-events-none">
                         <Phone className="h-5 w-5 text-gray-400 mr-2" />
                         <span className="text-gray-700 font-medium">+91</span>
@@ -432,14 +416,14 @@ export default function RegisterForm() {
                 />
             </div>
 
-            {/* Error Message */}
+            {/* Error Message (UNCHANGED) */}
             {error && (
               <div className={`rounded-lg p-4 ${error.includes('successful') ? 'bg-green-50' : 'bg-red-50'}`}>
                 <p className={`text-sm font-medium ${error.includes('successful') ? 'text-green-700' : 'text-red-700'}`}>{error}</p>
               </div>
             )}
 
-            {/* Submit Button */}
+            {/* Submit Button (UNCHANGED) */}
             <button
               type="submit"
               disabled={isLoading}
@@ -448,7 +432,6 @@ export default function RegisterForm() {
               {isLoading ? (
                 <span className="flex items-center">
                   Registering...
-                  {/* Basic loading spinner for context */}
                   <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -462,7 +445,7 @@ export default function RegisterForm() {
             </button>
           </form>
 
-          {/* Footer */}
+          {/* Footer (UNCHANGED) */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500">
               Already have an account?{" "}

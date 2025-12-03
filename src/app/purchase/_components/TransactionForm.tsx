@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndianRupee, Scissors, Lock, Eye, EyeOff } from 'lucide-react';
 
+// --- Types ---
 interface TransactionFormProps {
     amount: string;
     shopCode: string;
@@ -12,15 +13,17 @@ interface TransactionFormProps {
     handlePreSubmit: (e: React.FormEvent) => void;
 }
 
-export default function TransactionForm({
+// --- Main Component ---
+export default function TransactionFormWithGreeting({
     amount, shopCode, paymentMode, calculatedCoins,
     setShopCode, setPaymentMode, handleAmountChange, handlePreSubmit
 }: TransactionFormProps) {
     const [showShopCode, setShowShopCode] = React.useState<boolean>(false);
-
+    
+    // --- Render ---
     return (
         <form onSubmit={handlePreSubmit} className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-
+            
             {/* Amount */}
             <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-700 ml-1">AMOUNT (₹)</label>
@@ -43,7 +46,6 @@ export default function TransactionForm({
                     </p>
                 )}
             </div>
-
 
             {/* Payment Mode */}
             <div className="p-1 bg-gray-100 rounded-xl grid grid-cols-2 gap-1">

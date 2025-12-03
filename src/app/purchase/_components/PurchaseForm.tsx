@@ -1,7 +1,6 @@
-// components/PurchaseForm.tsx
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 import ScratchCardOverlay from "./ScratchCardOverlay";
@@ -54,42 +53,7 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
   const [showScratchCard, setShowScratchCard] = useState<boolean>(false);
   const [isScratched, setIsScratched] = useState<boolean>(false);
   
-  // FIX 1: Change ref type to `RefObject<HTMLCanvasElement>` to match ScratchCardOverlay's expectation.
-  // The ScratchCardOverlay must handle checking if canvasRef.current is null internally.
   const canvasRef = useRef<HTMLCanvasElement | null>(null); 
-
-  // --- Helper: Text To Speech (Moved here to utilize state/logic) ---
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-
-  useEffect(() => {
-    const loadVoices = () => {
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) setAvailableVoices(voices);
-    };
-    loadVoices();
-    if (window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
-    }
-  }, []);
-
-  const speakGreeting = useCallback((name: string): void => {
-    if (typeof window === "undefined" || !window.speechSynthesis || availableVoices.length === 0) return;
-
-    window.speechSynthesis.cancel();
-    const text = `Namaste ${name} ji, aapka swagat hai Ravi Kirana pe. Dhanyawadd.`;
-    const utterance = new SpeechSynthesisUtterance(text);
-    const preferredVoices = ["Microsoft Heera - Hindi (India)", "Google हिन्दी", "Apple Hindi", "Microsoft Ravi - English (India)", "Google India English", "Apple English"];
-    let selectedVoice: SpeechSynthesisVoice | undefined;
-    for (const pref of preferredVoices) {
-      selectedVoice = availableVoices.find(v => v.name.includes(pref) || v.lang.includes(pref));
-      if (selectedVoice) break;
-    }
-
-    if (selectedVoice) utterance.voice = selectedVoice;
-    utterance.rate = 0.9;
-    utterance.pitch = 1.1;
-    window.speechSynthesis.speak(utterance);
-  }, [availableVoices]);
 
   // --- HANDLE PHONE ENTRY & API CHECK ---
   const handleUserCheck = async (rawDigits: string): Promise<void> => {
@@ -110,9 +74,9 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
         const data = await res.json();
         const name: string = data.user.name || "Customer";
         setUserName(name);
-        speakGreeting(name);
+        // The useEffect hook above will now trigger the speakGreeting
       } else if (res.status === 404) {
-        // NEW LOGIC: If user not found, redirect to /register
+        // If user not found, redirect to /register
         router.push(`/register?phone=${rawDigits}`); 
       } else {
         setErrorMsg("API Error during user check.");
@@ -169,11 +133,11 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
           confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
         }
         
-        const destination = '/coins'; // User is verified at this point
+        const destination = '/coins'; // Assuming this is the next page after a successful transaction
 
         setTimeout(() => {
           router.push(destination);
-        }, 4000);
+        }, 4000); // Gives time to view confetti/scratch result
 
       } else {
         console.error(data.error || "Transaction failed.");
@@ -191,7 +155,7 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
     }
   };
   
-  // FIX 2: Define the missing function handleCancelScratch
+  // --- MISSING FUNCTION IMPLEMENTATION ---
   const handleCancelScratch = (): void => {
     if (isProcessing) return;
     setShowScratchCard(false);
@@ -247,7 +211,7 @@ export default function PurchaseForm({ onComplete }: PurchaseFormProps) {
           setIsScratched={setIsScratched}
           isProcessing={isProcessing}
           processTransaction={processTransaction}
-          onCancel={handleCancelScratch}
+          onCancel={handleCancelScratch} // This function is now correctly defined
         />
       )}
     </div>

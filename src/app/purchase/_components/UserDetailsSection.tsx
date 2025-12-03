@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { User, CheckCircle2 } from 'lucide-react';
 
 interface UserDetailsProps {
@@ -17,7 +17,34 @@ export default function UserDetailsSection({
     userName, isLoading, errorMsg, onCheck
 }: UserDetailsProps) {
 
+    // --- EFFECT: Check localStorage for userPhone and pre-fill ---
+    useEffect(() => {
+        // Run only on client-side and when phone is empty
+        if (phone === "" && typeof window !== 'undefined') {
+            const storedPhone = localStorage.getItem('userPhone');
+            
+            // Validate the stored phone number
+            if (storedPhone && /^\d{10}$/.test(storedPhone)) {
+                
+                // 1. Set the raw phone number state
+                setPhone(storedPhone);
+                
+                // 2. Format for display: " 98765 43210"
+                const formatted: string = " " + storedPhone.slice(0, 5) + " " + storedPhone.slice(5);
+                setFormattedPhone(formatted);
+                
+                // 3. Automatically run the API check
+                // NOTE: We wrap the async call in a function to use 'await' if needed, 
+                // but keep it non-blocking using setTimeout for immediate UI update.
+                setTimeout(() => {
+                    onCheck(storedPhone);
+                }, 0); 
+            }
+        }
+    }, [setPhone, setFormattedPhone, onCheck]); // Removed 'phone' dependency to ensure it only runs on mount/reset
+
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        // Remove all non-digit characters
         const inputValue: string = e.target.value.replace(/\D/g, "");
         const rawDigits: string = inputValue.slice(0, 10);
     
@@ -32,8 +59,16 @@ export default function UserDetailsSection({
         setPhone(rawDigits);
         setFormattedPhone(formatted);
         
+        // Clear localStorage if the user deletes the number, preventing re-fill on refresh/re-render
+        if (rawDigits.length < 10) {
+            localStorage.removeItem('userPhone');
+        }
+
         // Trigger API check only when 10 digits are complete
         if (rawDigits.length === 10) {
+          // ✅ STORE THE PHONE NUMBER HERE (If the API check succeeds, the number will be saved/overwritten)
+          localStorage.setItem('userPhone', rawDigits);
+          
           onCheck(rawDigits);
         }
     };
@@ -50,9 +85,12 @@ export default function UserDetailsSection({
                     type="tel"
                     value={formattedPhone}
                     onChange={handlePhoneChange}
-                    maxLength={16}
+                    maxLength={16} // Max length for display including spaces
                     placeholder="98765 43210"
-                    className="w-full pl-16 pr-12 py-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-lg text-gray-900 tracking-wider focus:ring-2 focus:ring-indigo-500/50 focus:bg-white transition-all outline-none"
+                    // Conditional styling based on user verification status
+                    className={`w-full pl-16 pr-12 py-4 rounded-2xl font-bold text-lg text-gray-900 tracking-wider transition-all outline-none 
+                        ${userName ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-100 focus:ring-2 focus:ring-indigo-500/50 focus:bg-white'}
+                    `}
                 />
                 {isLoading && (
                     // Tailwind custom loading spinner
@@ -65,6 +103,7 @@ export default function UserDetailsSection({
                 )}
             </div>
 
+            {/* User Verification Status */}
             {userName && (
                 <div className="animate-in slide-in-from-top-2 duration-300">
                     <div className="bg-green-50 border border-green-100 p-3 rounded-xl flex items-center gap-3">
@@ -79,6 +118,7 @@ export default function UserDetailsSection({
                     </div>
                 </div>
             )}
+            {/* Error Message */}
             {errorMsg && <p className="text-red-500 text-xs ml-1">{errorMsg}</p>}
         </div>
     );
