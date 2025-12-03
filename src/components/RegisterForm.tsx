@@ -1,5 +1,6 @@
-// RegisterForm.tsx (MODIFIED)
 "use client";
+export const dynamic = "force-dynamic";
+
 
 import { useState, useMemo, useEffect, useRef } from "react"; // ADDED useRef
 import { useRouter, useSearchParams } from 'next/navigation';
