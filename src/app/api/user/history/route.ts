@@ -1,12 +1,32 @@
 import { NextResponse } from "next/server";
+import { Types } from "mongoose";
 import { dbConnect } from "@/lib/dbConnect";
 import Transaction from "@/models/Transaction";
 import Redemption from "@/models/Redemption";
 
-// --- HistoryItem Interface ---
-// Define the output structure for the combined history
+// --- Database Document Interfaces ---
+
+interface TransactionDocument {
+  _id: Types.ObjectId;
+  amount: number;
+  paymentMode: string;
+  coinsEarned: number;
+  timestamp: Date;
+}
+
+interface RedemptionDocument {
+  _id: Types.ObjectId;
+  productName: string;
+  status: string;
+  redeemCode?: string; // Optional field
+  coinsSpent: number;
+  createdAt: Date;
+}
+
+// --- Output Interface ---
+
 interface HistoryItem {
-  id: number | string; 
+  id: string; // Changed to string to safely hold ObjectId.toString()
   type: "EARN" | "SPEND";
   title: string;
   subtitle: string;
@@ -27,17 +47,17 @@ export async function GET(req: Request) {
     
     await dbConnect();
 
-    // 1. Fetch Earnings (Shopping)
-    // In a real app, you'd use ITransaction[] here if available
-    const earnings = await Transaction.find({ userId }).lean();
+    // 1. Fetch Earnings (Shopping) with strict typing
+    const earnings = await Transaction.find({ userId })
+      .lean<TransactionDocument[]>();
     
-    // 2. Fetch Spendings (Redemptions)
-    // In a real app, you'd use IRedemption[] here if available
-    const redemptions = await Redemption.find({ userId }).lean();
+    // 2. Fetch Spendings (Redemptions) with strict typing
+    const redemptions = await Redemption.find({ userId })
+      .lean<RedemptionDocument[]>();
 
-    // 3. Normalize Data with explicit typing
-    const normalizedEarnings: HistoryItem[] = earnings.map((item: any) => ({
-      id: item._id,
+    // 3. Normalize Data
+    const normalizedEarnings: HistoryItem[] = earnings.map((item) => ({
+      id: item._id.toString(),
       type: "EARN",
       title: `Shopping ₹${item.amount}`,
       subtitle: `Payment: ${item.paymentMode}`,
@@ -47,11 +67,11 @@ export async function GET(req: Request) {
       status: "COMPLETED"
     }));
 
-    const normalizedRedemptions: HistoryItem[] = redemptions.map((item: any) => ({
-      id: item._id,
+    const normalizedRedemptions: HistoryItem[] = redemptions.map((item) => ({
+      id: item._id.toString(),
       type: "SPEND",
       title: `Redeemed: ${item.productName}`,
-      // FIX: Ensure redeemCode exists before accessing
+      // Safe access because interface defines redeemCode as optional
       subtitle: item.status === 'PENDING' ? `Code: ${item.redeemCode || 'N/A'}` : item.status,
       coins: item.coinsSpent,
       isPositive: false,

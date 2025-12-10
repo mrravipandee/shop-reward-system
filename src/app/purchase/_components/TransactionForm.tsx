@@ -39,12 +39,6 @@ export default function TransactionFormWithGreeting({
                         required
                     />
                 </div>
-                {/* Coin Preview */}
-                {Number(amount) > 0 && (
-                    <p className="text-xs text-indigo-600 font-semibold ml-1">
-                        Potential Reward: **{calculatedCoins}** Coins
-                    </p>
-                )}
             </div>
 
             {/* Payment Mode */}
