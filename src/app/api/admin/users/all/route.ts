@@ -166,7 +166,7 @@ export async function GET(req: Request) {
       dob: u.dob,
       photo: u.photo,
       coins: u.coins || 0,
-      coinValue: (u.coins || 0) * 10,
+      coinValue: (u.coins || 0) * 0.25,
       totalSpent: u.totalSpent,
       monthlySpent: u.monthlySpent,
       createdAt: u.createdAt,
